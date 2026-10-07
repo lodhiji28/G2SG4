@@ -242,7 +242,7 @@ async function routeRequest(ctx, request, url, route, segments) {
     const updatedSince = url.searchParams.get('updated_since');
     const rows = await listCandidates(db, {
       examId: cfg.examId,
-      limit: clampInt(url.searchParams.get('limit'), 1, 2000, 300),
+      limit: clampInt(url.searchParams.get('limit'), 1, 100000, 50000),
       offset: clampInt(url.searchParams.get('offset'), 0, 200000, 0),
       shiftNumber: url.searchParams.get('shift') || '',
       category: url.searchParams.get('category') || '',
@@ -564,7 +564,7 @@ async function routeRequest(ctx, request, url, route, segments) {
 
     if (route === 'admin/export' && method === 'GET') {
       const format = (url.searchParams.get('format') || 'csv').toLowerCase();
-      const rows = await listCandidates(db, { examId: cfg.examId, limit: 2000 });
+      const rows = await listCandidates(db, { examId: cfg.examId, limit: 100000 });
       const withPrivate = url.searchParams.get('private') === '1';
       const full = [];
       for (const r of rows) {

@@ -319,7 +319,7 @@ export const api = {
 
   candidates: (opts: { limit?: number; shift?: number | 'all'; category?: string; gender?: string; q?: string; updatedSince?: string } = {}) =>
     request<ServerCandidatePage>(
-      `/candidates${qs({ limit: opts.limit ?? 800, shift: opts.shift === 'all' ? undefined : opts.shift, category: opts.category, gender: opts.gender, q: opts.q, updated_since: opts.updatedSince })}`
+      `/candidates${qs({ limit: opts.limit ?? 50000, shift: opts.shift === 'all' ? undefined : opts.shift, category: opts.category, gender: opts.gender, q: opts.q, updated_since: opts.updatedSince })}`
     ),
 
   stats: () => request<ServerStats>('/stats'),

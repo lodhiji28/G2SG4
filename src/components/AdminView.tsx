@@ -981,12 +981,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-xs text-slate-500">
+              <span>दृश्य:</span>
+              <select
+                value={rowLimit}
+                onChange={(e) => setRowLimit(Number(e.target.value))}
+                className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200"
+                title="स्क्रीन पर प्रदर्शित पंक्तियाँ"
+              >
+                <option value={50}>50 पंक्तियाँ</option>
+                <option value={100}>100 पंक्तियाँ</option>
+                <option value={500}>500 पंक्तियाँ</option>
+                <option value={1000}>1,000 पंक्तियाँ</option>
+                <option value={5000}>5,000 पंक्तियाँ</option>
+                <option value={50000}>सभी (50k+)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={handleDownloadHtmlReport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors cursor-pointer"
+              title="फ़िल्टर किया हुआ सारा डेटा HTML रिपोर्ट में डाउनलोड करें"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>HTML रिपोर्ट डाउनलोड</span>
+            </button>
+
             <button
               onClick={() => setShowPdfModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>फ़िल्टर डेटा PDF डाउनलोड करें</span>
+              <span>PDF डाउनलोड</span>
             </button>
           </div>
         </div>

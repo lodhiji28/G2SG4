@@ -95,7 +95,7 @@ export async function listCandidates(db, opts = {}) {
   const order =
     opts.order === 'recent' ? 'submitted_at DESC' : 'raw_score DESC, submitted_at ASC';
 
-  const limit = Math.min(Math.max(Number(opts.limit) || 300, 1), 2000);
+  const limit = Math.min(Math.max(Number(opts.limit) || 50000, 1), 100000);
   const offset = Math.max(Number(opts.offset) || 0, 0);
 
   const rows = await db.all(

@@ -62,7 +62,7 @@ export interface SubmitResult {
 }
 
 const keyOf = (roll: string) => String(roll || '').trim().toLowerCase();
-const FETCH_LIMIT = Number((import.meta.env.VITE_LEADERBOARD_LIMIT as string) || 1200);
+const FETCH_LIMIT = Number((import.meta.env.VITE_LEADERBOARD_LIMIT as string) || 50000);
 
 export const repository = {
   /** True when the API base URL is configured and not explicitly disabled. */
