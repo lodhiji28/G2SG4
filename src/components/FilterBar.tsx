@@ -15,7 +15,8 @@ import {
   Award, 
   Briefcase, 
   Shield, 
-  Printer 
+  Printer,
+  Download
 } from 'lucide-react';
 
 interface FilterBarProps {
@@ -25,6 +26,7 @@ interface FilterBarProps {
   totalFilteredCount?: number;
   totalCount?: number;
   onExportPdf?: () => void;
+  onExportHtml?: () => void;
   title?: string;
 }
 
@@ -35,6 +37,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   totalFilteredCount,
   totalCount,
   onExportPdf,
+  onExportHtml,
   title = 'डेटा फ़िल्टर (Data Filters)',
 }) => {
   const [isAdvanceOpen, setIsAdvanceOpen] = useState(false);
@@ -118,6 +121,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* HTML Direct Download trigger */}
+          {onExportHtml && (
+            <button
+              onClick={onExportHtml}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+              title="फ़िल्टर किया हुआ डेटा सुंदर HTML रिपोर्ट में सीधे डाउनलोड करें"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>HTML रिपोर्ट डाउनलोड</span>
+            </button>
+          )}
+
           {/* PDF Export trigger if provided (e.g. for Admin) */}
           {onExportPdf && (
             <button

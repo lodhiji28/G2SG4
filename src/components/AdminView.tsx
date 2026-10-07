@@ -419,6 +419,277 @@ export const AdminView: React.FC<AdminViewProps> = ({
     window.print();
   };
 
+  // Direct HTML Report Download (Beautifully styled with watermark & print button)
+  const handleDownloadHtmlReport = () => {
+    const list = filteredCandidates;
+    const now = new Date().toLocaleString('hi-IN', { timeZone: 'Asia/Kolkata' });
+    const shiftText = filters.shiftNumber === 'all' ? 'सभी 22 शिफ्ट्स' : `Shift ${filters.shiftNumber}`;
+    const categoryText = filters.category === 'all' ? 'सभी श्रेणियां' : filters.category;
+    const genderText = filters.gender === 'all' ? 'सभी लिंग' : (filters.gender === 'Male' ? 'पुरुष' : 'महिला');
+    const qualsText = filters.qualifications && filters.qualifications.length > 0
+      ? filters.qualifications.join(', ')
+      : 'सभी शैक्षणिक योग्यताएं';
+
+    const maxScore = list.length > 0 ? Math.max(...list.map((c) => c.rawScore)) : 0;
+    const avgScore = list.length > 0 ? (list.reduce((acc, c) => acc + c.rawScore, 0) / list.length).toFixed(2) : '0';
+
+    const tableRows = list.map((c, i) => {
+      const rank = i + 1;
+      const name = unmaskNames ? (c.candidateNamePrivate || c.candidateNamePublic) : c.candidateNamePublic;
+      const quals = (c.qualifications || []).join(', ') || '-';
+      const quota = [c.contractStatus ? 'संविदा' : null, c.exServiceman ? 'भूतपूर्व सैनिक' : null].filter(Boolean).join(' + ') || '-';
+      return `
+        <tr>
+          <td style="text-align:center;font-weight:bold;">#${rank}</td>
+          <td style="font-family:monospace;font-weight:600;">${c.rollNumber}</td>
+          <td style="font-weight:600;">${name}</td>
+          <td>Shift ${c.shiftNumber} (${c.examDate})</td>
+          <td style="text-align:center;"><span class="badge">${c.category}</span></td>
+          <td style="text-align:center;">${c.gender === 'Male' ? 'पुरुष' : (c.gender === 'Female' ? 'महिला' : 'अन्य')}</td>
+          <td style="text-align:center;font-size:11px;">${quota}</td>
+          <td style="font-size:11px;max-width:180px;white-space:normal;">${quals}</td>
+          <td style="text-align:right;color:#16a34a;font-weight:bold;">${c.correct}</td>
+          <td style="text-align:right;color:#dc2626;font-weight:bold;">${c.wrong}</td>
+          <td style="text-align:right;font-size:14px;font-weight:900;color:#d97706;font-family:monospace;">${c.rawScore}</td>
+          <td style="text-align:right;font-family:monospace;">${c.accuracy}%</td>
+        </tr>
+      `;
+    }).join('\n');
+
+    const html = `<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MPESB Group-2 Sub-Group-4 फ़िल्टर्ड मेरिट रिपोर्ट</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Poppins', -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1250px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      position: relative;
+    }
+    .top-action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .print-btn {
+      background: #dc2626;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);
+    }
+    .print-btn:hover { background: #b91c1c; }
+    .header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    .header-title { font-size: 20px; font-weight: 900; color: #0f172a; text-transform: uppercase; }
+    .header-sub { font-size: 15px; font-weight: 700; color: #b45309; margin-top: 4px; }
+    .header-meta { font-size: 11px; color: #64748b; margin-top: 6px; }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 12px 16px;
+      border-radius: 10px;
+    }
+    .stat-label { font-size: 11px; color: #64748b; font-weight: 600; }
+    .stat-val { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 4px; font-family: monospace; }
+    .filters-banner {
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #92400e;
+      margin-bottom: 24px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      position: relative;
+      z-index: 2;
+    }
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 2px solid #cbd5e1;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+    tr:nth-child(even) { background-color: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .watermark-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 1;
+      user-select: none;
+    }
+    .watermark-text {
+      transform: rotate(-30deg);
+      text-align: center;
+    }
+    .watermark-text h1 { font-size: 80px; font-weight: 900; color: #78350f; text-transform: uppercase; letter-spacing: 4px; }
+    .watermark-text p { font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 8px; }
+    @media print {
+      body { padding: 0; background: #fff; }
+      .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .top-action-bar { display: none; }
+      .watermark-bg { position: fixed; }
+      tr { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="watermark-bg">
+    <div class="watermark-text">
+      <h1>TOPPER VIEW</h1>
+      <p>Owner: @LODHIJI27 (Telegram)</p>
+    </div>
+    <div class="watermark-text">
+      <h1>TOPPER VIEW</h1>
+      <p>Owner: @LODHIJI27 (Telegram)</p>
+    </div>
+    <div class="watermark-text">
+      <h1>TOPPER VIEW</h1>
+      <p>Owner: @LODHIJI27 (Telegram)</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="top-action-bar">
+      <div>
+        <strong style="color:#d97706;font-size:14px;">MPESB G2SG4 एडवांस्ड रिपोर्ट</strong>
+        <span style="color:#64748b;font-size:12px;margin-left:8px;">कुल ${list.length} चयनित उम्मीदवार</span>
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        🖨️ PDF सेव करें / प्रिंट करें (Print to PDF)
+      </button>
+    </div>
+
+    <div class="header-box">
+      <div class="header-title">मध्य प्रदेश कर्मचारी चयन मण्डल (MPESB), भोपाल</div>
+      <div class="header-sub">समूह-02 उपसमूह-04 एवं पटवारी संयुक्त भर्ती परीक्षा 2026 — फ़िल्टर्ड मेरिट सूची</div>
+      <div class="header-meta">
+        रिपोर्ट जनरेशन: <strong>${now}</strong> · वाटरमार्क: <strong>TOPPER VIEW</strong> (Owner: @LODHIJI27)
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">कुल उम्मीदवार (फ़िल्टर अनुसार)</div>
+        <div class="stat-val">${list.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">डेटाबेस कुल अभ्यर्थी</div>
+        <div class="stat-val">${candidates.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">उच्चतम रॉ स्कोर (Topper)</div>
+        <div class="stat-val" style="color:#d97706;">${maxScore}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">औसत रॉ स्कोर (Average)</div>
+        <div class="stat-val" style="color:#2563eb;">${avgScore}</div>
+      </div>
+    </div>
+
+    <div class="filters-banner">
+      <strong>लागू फ़िल्टर:</strong> 
+      शिफ्ट: <strong>${shiftText}</strong> | 
+      श्रेणी: <strong>${categoryText}</strong> | 
+      लिंग: <strong>${genderText}</strong> | 
+      योग्यताएं: <strong>${qualsText}</strong>
+      ${filters.searchQuery ? ` | खोज: <strong>"${filters.searchQuery}"</strong>` : ''}
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:50px;text-align:center;">रैंक</th>
+          <th>रोल नंबर</th>
+          <th>अभ्यर्थी नाम</th>
+          <th>शिफ्ट व तारीख</th>
+          <th style="text-align:center;">श्रेणी</th>
+          <th style="text-align:center;">लिंग</th>
+          <th style="text-align:center;">कोटा</th>
+          <th>शैक्षणिक योग्यताएं</th>
+          <th style="text-align:right;">सही (+1)</th>
+          <th style="text-align:right;">गलत (-0.25)</th>
+          <th style="text-align:right;">रॉ स्कोर</th>
+          <th style="text-align:right;">सटीकता</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${list.length === 0 ? '<tr><td colspan="12" style="text-align:center;padding:32px;color:#64748b;">कोई उम्मीदवार उपलब्ध नहीं है।</td></tr>' : tableRows}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    download(url, `MPESB_G2SG4_Filtered_Report_${Date.now()}.html`);
+    URL.revokeObjectURL(url);
+    addAuditLog('ADMIN_EXPORT', `${list.length} फ़िल्टर किए गए उम्मीदवार HTML रिपोर्ट में निर्यात किए गए`, 'Admin');
+    setAuditLogs(getAuditLogs());
+  };
+
   // If not authenticated, render clean login form (NO password displayed on screen!)
   if (!isAuthenticated) {
     return (
@@ -485,10 +756,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* HTML Direct Download Button */}
+          <button
+            onClick={handleDownloadHtmlReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            title="फ़िल्टर किया हुआ डेटा सुंदर HTML रिपोर्ट में सीधे डाउनलोड करें"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>HTML रिपोर्ट डाउनलोड</span>
+          </button>
+
           {/* PDF Download Button */}
           <button
             onClick={() => setShowPdfModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            title="ब्राउज़र प्रिंटर से PDF सेव या प्रिंट करें"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>PDF डाउनलोड / प्रिंट</span>
@@ -682,6 +964,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         totalFilteredCount={filteredCandidates.length}
         totalCount={candidates.length}
         onExportPdf={() => setShowPdfModal(true)}
+        onExportHtml={handleDownloadHtmlReport}
         title="प्रशासक एडवांस्ड फ़िल्टर (Admin Advance Multi-Filter)"
       />
 
@@ -1108,6 +1391,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleDownloadHtmlReport}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+                title="सीधे HTML फ़ाइल डाउनलोड करें"
+              >
+                <Download className="w-4 h-4" />
+                <span>HTML फ़ाइल डाउनलोड</span>
+              </button>
               <button
                 onClick={triggerPdfPrint}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
