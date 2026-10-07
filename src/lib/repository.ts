@@ -117,9 +117,13 @@ export const repository = {
     const local = getCandidates();
     const pending = getPending().length;
 
+    // Always fetch live multi-device data from Cloud Supabase
+    const cloudRows = await fetchCloudSubmissions(opts.limit ?? FETCH_LIMIT);
+    if (cloudRows.length > 0) {
+      return mergeAndSaveCloud(cloudRows, local);
+    }
+
     if (!api.enabled) {
-      const cloudRows = await fetchCloudSubmissions(opts.limit ?? FETCH_LIMIT);
-      if (cloudRows.length > 0) return mergeAndSaveCloud(cloudRows, local);
       return {
         candidates: local,
         sync: setSyncMeta({ mode: 'local', total: local.length }),
@@ -131,10 +135,8 @@ export const repository = {
     const res = await api.candidates({ limit: opts.limit ?? FETCH_LIMIT });
     const rows = res.data?.candidates ?? [];
 
-    if (res.status === 0 || res.status === 404) {
+    if (res.status === 0 || res.status === 404 || !Array.isArray(res.data?.candidates)) {
       setApiReachable(false);
-      const cloudRows = await fetchCloudSubmissions(opts.limit ?? FETCH_LIMIT);
-      if (cloudRows.length > 0) return mergeAndSaveCloud(cloudRows, local);
       return {
         candidates: local,
         sync: setSyncMeta({ mode: 'local', total: local.length }),
@@ -236,12 +238,14 @@ export const repository = {
       return { ok: false, duplicate: true, error: 'इस रोल नंबर की उत्तर कुंजी इस डिवाइस पर पहले से दर्ज है।' };
     }
 
-    upsertLocalCandidate({ ...input, isSelf: true, isLocalOnly: !api.enabled });
+    upsertLocalCandidate({ ...input, isSelf: true, isLocalOnly: false });
+
+    // 1. Immediately persist to Cloud Supabase for live multi-device sync
+    const cloudSaved = await saveCloudSubmission(input);
 
     if (!api.enabled) {
-      await saveCloudSubmission(input);
       setSyncMeta({ mode: 'live', lastSyncAt: new Date().toISOString() });
-      return { ok: true, message: 'उत्तर कुंजी क्लाउड डेटाबेस में दर्ज हो गई है!' };
+      return { ok: true, message: 'उत्तर कुंजी क्लाउड डेटाबेस में सफलतापूर्वक दर्ज हो गई है!' };
     }
 
     const res = await api.submit(input);
@@ -262,14 +266,12 @@ export const repository = {
       return { ok: false, duplicate: true, error: res.error || 'यह रोल नंबर पहले से दर्ज है।' };
     }
 
-    // 404 indicates static hosting with no API backend (e.g. Netlify dist upload).
-    // Directly save to Cloud Supabase so all mobile devices share the data!
-    if (res.status === 404) {
-      await saveCloudSubmission(input);
+    // Static hosting (404) or cloud already saved
+    if (res.status === 404 || cloudSaved) {
       setSyncMeta({ mode: 'live', lastSyncAt: new Date().toISOString() });
       return {
         ok: true,
-        message: 'उत्तर कुंजी क्लाउड डेटाबेस में दर्ज हो गई है!',
+        message: 'उत्तर कुंजी क्लाउड डेटाबेस में सफलतापूर्वक दर्ज हो गई है!',
       };
     }
 

@@ -198,14 +198,28 @@ async function request<T>(
       return { ok: true, status: 304, data: cache[path].payload as T, notModified: true };
     }
 
+    const contentType = res.headers.get('content-type') || '';
     const text = await res.text();
     let payload: any = null;
+    let isJson = false;
     if (text) {
       try {
         payload = JSON.parse(text);
+        isJson = true;
       } catch {
         payload = { raw: text };
       }
+    }
+
+    // If static hosting (Netlify Drop) serves index.html for /api/* routes:
+    if (contentType.includes('text/html') || !isJson) {
+      return {
+        ok: false,
+        status: 404,
+        data: null,
+        offline: true,
+        error: 'API endpoint not found (static hosting detected)',
+      };
     }
 
     if (res.ok) {
