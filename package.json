@@ -1,0 +1,63 @@
+{
+  "name": "rank-mitra",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Rank Mitra — MPESB Group-2 Sub-Group-4 answer key based raw score, 22-shift analysis and live rank platform.",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:api": "node --disable-warning=ExperimentalWarning server.js",
+    "dev:all": "node scripts/dev-all.mjs",
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "build": "vite build",
+    "preview": "vite preview --port=4173 --host=0.0.0.0",
+    "clean": "rm -rf dist .data",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=ExperimentalWarning --import tsx --test tests/*.test.mjs",
+    "db:setup": "node scripts/apply-schema.mjs",
+    "db:setup:d1": "node scripts/gen-sql.mjs && wrangler d1 execute rank-mitra-db --remote --file=db/schema-d1.sql",
+    "deploy:cf": "npm run build && wrangler deploy",
+    "preview:cf": "wrangler dev",
+    "samples": "node scripts/make-samples.mjs",
+    "db:export-sql": "node scripts/export-sql.mjs",
+    "db:create:d1": "wrangler d1 create rank-mitra-db",
+    "test:parser": "node --disable-warning=ExperimentalWarning --import tsx tests/parser.test.mjs",
+    "db:sql": "node scripts/gen-sql.mjs",
+    "db:setup:pg": "node scripts/gen-sql.mjs && psql \"$DATABASE_URL\" -f db/schema-postgres.sql",
+    "db:setup:d1:local": "node scripts/gen-sql.mjs && wrangler d1 execute rank-mitra-db --local --file=db/schema-d1.sql",
+    "verify:real": "node --disable-warning=ExperimentalWarning --import tsx scripts/verify-real.mjs",
+    "test:real": "node --disable-warning=ExperimentalWarning --import tsx --test tests/real-files.test.mjs",
+    "test:all": "node --disable-warning=ExperimentalWarning --import tsx --test tests/*.test.mjs",
+    "test:nep": "node --disable-warning=ExperimentalWarning --import tsx --test tests/normalization.test.mjs",
+    "verify:paste": "node --disable-warning=ExperimentalWarning --import tsx scripts/verify-paste-e2e.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "vite": "^8.3.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.28.2",
+    "linkedom": "^0.18.13",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2"
+  },
+  "optionalDependencies": {
+    "nodemailer": "^10.0.15"
+  }
+}

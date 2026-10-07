@@ -1,0 +1,46 @@
+# Cloudflare Workers config — the recommended free production target.
+#   npm i -D wrangler
+#   npx wrangler login
+#   npm run db:create:d1     (first time only)
+#   npm run deploy:cf
+
+name = "rank-mitra"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# The built SPA is served by the Worker itself, so the site and the API share
+# one origin (no CORS, no second host, no egress meter).
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# ---- D1 (free: 5 GB storage, 5M row-reads/day, 100k row-writes/day,
+#      and Cloudflare does not bill egress for D1) --------------------------
+[[d1_databases]]
+binding = "RANK_MITRA_DB"
+database_name = "rank-mitra-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"   # printed by `wrangler d1 create rank-mitra-db`
+
+# ---- non-secret runtime config (secrets: npx wrangler secret put NAME) -----
+[vars]
+EXAM_ID = "mpesb-g2sg4-2026"
+DB_DRIVER = "d1"
+CACHE_MAX_AGE = "1800"
+SUBMIT_RATE_PER_HOUR = "20"
+ALLOWED_ORIGINS = "*"
+EMAIL_PROVIDER = "brevo"
+EMAIL_FROM = "Rank Mitra <alerts@yourdomain.in>"
+EMAIL_DAILY_LIMIT = "250"
+ADMIN_EMAIL = ""
+DATA_RETENTION_DAYS = "120"
+
+# Daily log/email-log cleanup. 04:10 UTC ≈ 09:40 IST.
+[triggers]
+crons = ["10 4 * * *"]
+
+observability = { enabled = true, head_sampling_rate = 0.1 }
+
+# Only needed if you set EMAIL_PROVIDER=smtp on Workers (nodemailer is
+# Node-only — prefer brevo/resend here).
