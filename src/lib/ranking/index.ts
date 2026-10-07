@@ -79,7 +79,7 @@ export function getCandidateRankings(
   // Visual achievement badge (Blueprint #23)
   let badge = {
     title: 'PARTICIPANT',
-    description: 'Rank Mitra Dataset में शामिल',
+    description: 'MPESB G2SG4 Dataset में शामिल',
     icon: '📊',
     color: 'slate',
   };

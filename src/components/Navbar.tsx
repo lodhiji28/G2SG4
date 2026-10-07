@@ -78,20 +78,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => onTabChange('dashboard')} 
                 className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer"
               >
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center font-bold text-slate-950 text-base shadow-sm">
-                  RM
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center font-bold text-slate-950 text-sm shadow-sm">
+                  ESB
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                      Rank Mitra
+                      MPESB G2SG4
                     </span>
                     <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                      G2-SG4
+                      पटवारी व अन्य
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block truncate max-w-[200px]">
-                    MPESB उत्तर कुंजी विश्लेषक
+                    उत्तर कुंजी व रैंक विश्लेषक
                   </p>
                 </div>
               </button>

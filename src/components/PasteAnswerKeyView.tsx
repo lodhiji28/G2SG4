@@ -15,7 +15,7 @@ import { AnswerKeyParser } from '../lib/parser';
 import { calculateRawScore } from '../lib/scoring';
 import { repository } from '../lib/repository';
 import type { RankBlock } from '../lib/api';
-import { EXAM_SHIFTS, getShiftByNumber } from '../data/shifts';
+import { getShiftByNumber } from '../data/shifts';
 import { MASTER_QUALIFICATIONS, QUALIFICATION_GROUPS } from '../data/qualifications';
 import { Category, Gender, ParsedAnswerKeyData, CandidateRecord } from '../types';
 import {
@@ -24,13 +24,13 @@ import {
   Clipboard,
   Eye,
   EyeOff,
-  Info,
   ListChecks,
   Loader2,
   Search,
   ShieldCheck,
   Trash2,
   X,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Props {
@@ -45,6 +45,7 @@ const CATEGORIES: { value: Category; label: string }[] = [
   { value: 'OBC', label: 'OBC / अन्य पिछड़ा वर्ग' },
   { value: 'SC', label: 'SC / अनुसूचित जाति' },
   { value: 'ST', label: 'ST / अनुसूचित जनजाति' },
+  { value: 'PWD', label: 'दिव्यांग (PwD / दिव्यांगजन)' },
 ];
 
 const GENDERS: { value: Gender; label: string }[] = [
@@ -69,13 +70,11 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
   const [showRaw, setShowRaw] = useState(false);
   const [saved, setSaved] = useState<{ rank: RankBlock | null; message?: string } | null>(null);
 
-  // fields the candidate can correct / set
-  const [editShift, setEditShift] = useState<number>(1);
-  const [editCorrect, setEditCorrect] = useState<number>(0);
-  const [editWrong, setEditWrong] = useState<number>(0);
-  const [editTotal, setEditTotal] = useState<number>(200);
+  // fields the candidate can select (category, gender, ex-serviceman, samvidha, qualifications)
   const [category, setCategory] = useState<Category>('UR');
   const [gender, setGender] = useState<Gender>('Male');
+  const [exServiceman, setExServiceman] = useState<boolean>(false);
+  const [contractStatus, setContractStatus] = useState<boolean>(false);
   const [qualifications, setQualifications] = useState<string[]>([]);
   const [qualQuery, setQualQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -87,10 +86,6 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
 
   const applyParse = (out: ParsedAnswerKeyData) => {
     setParsed(out);
-    setEditShift(out.shiftNumber || 1);
-    setEditCorrect(out.correct);
-    setEditWrong(out.wrong);
-    setEditTotal(out.totalQuestions || 200);
     const rollKey = key(out.rollNumber);
     setAlreadySaved(Boolean(rollKey && known.has(rollKey)));
   };
@@ -198,13 +193,21 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
     textareaRef.current?.focus();
   };
 
-  const score = useMemo(() => calculateRawScore(editCorrect, editWrong, editTotal), [editCorrect, editWrong, editTotal]);
-  const shift = getShiftByNumber(editShift);
-  const mismatch = parsed ? editCorrect !== parsed.correct || editWrong !== parsed.wrong : false;
+  const score = useMemo(() => {
+    if (!parsed) return calculateRawScore(0, 0, 200);
+    return calculateRawScore(parsed.correct, parsed.wrong, parsed.totalQuestions);
+  }, [parsed]);
+
+  const shift = parsed ? getShiftByNumber(parsed.shiftNumber || 1) : null;
 
   const buildRecord = (): CandidateRecord => {
     const roll = (parsed?.rollNumber || '').trim();
     const name = (parsed?.candidateName || '').trim();
+    const shiftNum = parsed?.shiftNumber || 1;
+    const totalQ = parsed?.totalQuestions || 200;
+    const correct = parsed?.correct || 0;
+    const wrong = parsed?.wrong || 0;
+
     return {
       id: `local-${key(roll) || Date.now()}`,
       examId: 'mpesb-g2sg4-2026',
@@ -212,17 +215,19 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
       candidateNamePrivate: name,
       candidateNamePublic: name ? `${name.slice(0, Math.max(2, name.indexOf(' ') > 0 ? name.indexOf(' ') : 4))}${name.length > 6 ? ' L****' : ''}` : 'छात्र L****',
       examDate: parsed?.examDate || shift?.date || '',
-      shiftId: `shift-${String(editShift).padStart(2, '0')}`,
-      shiftNumber: editShift,
-      totalQuestions: editTotal,
+      shiftId: `shift-${String(shiftNum).padStart(2, '0')}`,
+      shiftNumber: shiftNum,
+      totalQuestions: totalQ,
       attempted: score.attempted,
       unattempted: score.unattempted,
-      correct: score.correct,
-      wrong: score.wrong,
+      correct: correct,
+      wrong: wrong,
       rawScore: score.rawScore,
       accuracy: score.accuracy,
       category,
       gender,
+      exServiceman,
+      contractStatus,
       qualifications,
       submittedAt: new Date().toISOString(),
       sourceFormat: parsed?.sourceFormat,
@@ -237,8 +242,8 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
     setSubmitError(null);
     if (!parsed) return setSubmitError('पहले पेस्ट की गई सामग्री पहचानें (पेस्ट करें / पहचानें बटन)।');
     if (!parsed.rollNumber) return setSubmitError('रोल नंबर पेस्ट में नहीं मिला — कृपया पूरी कॉपी दोबारा पेस्ट करें।');
-    if (editCorrect + editWrong > editTotal)
-      return setSubmitError(`सही (${editCorrect}) + गलत (${editWrong}) कुल प्रश्नों (${editTotal}) से ज़्यादा नहीं हो सकते।`);
+    if (parsed.correct + parsed.wrong > parsed.totalQuestions)
+      return setSubmitError(`सही (${parsed.correct}) + गलत (${parsed.wrong}) कुल प्रश्नों (${parsed.totalQuestions}) से ज़्यादा नहीं हो सकते।`);
 
     setSubmitting(true);
     const result = await repository.submit(buildRecord());
@@ -259,6 +264,24 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
 
   const toggleQual = (q: string) =>
     setQualifications((list) => (list.includes(q) ? list.filter((x) => x !== q) : [...list, q]));
+
+  const selectAllQuals = () => {
+    const all = Array.from(new Set([...qualifications, ...MASTER_QUALIFICATIONS]));
+    setQualifications(all);
+  };
+
+  const clearAllQuals = () => {
+    setQualifications([]);
+  };
+
+  const toggleGroupQuals = (items: string[]) => {
+    const allSelected = items.every((item) => qualifications.includes(item));
+    if (allSelected) {
+      setQualifications((list) => list.filter((q) => !items.includes(q)));
+    } else {
+      setQualifications((list) => Array.from(new Set([...list, ...items])));
+    }
+  };
 
   const filteredGroups = useMemo(() => {
     const needle = qualQuery.trim().toLowerCase();
@@ -312,6 +335,28 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Official ESB Answer Key Portal Direct Link Card */}
+          <div className="mb-3.5 p-3.5 rounded-xl bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-amber-500/10 border border-blue-200 dark:border-blue-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="space-y-1 text-xs">
+              <div className="font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5 text-sm">
+                <ExternalLink className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span>आधिकारिक ESB पोर्टल से अपनी उत्तर कुंजी (Response Sheet) देखें</span>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                ESB पोर्टल पर अपना <strong>Roll Number</strong>, <strong>Date of Birth (DOB)</strong>, प्रवेश पत्र पर अंकित <strong>TAC कोड</strong> और <strong>Captcha</strong> भरकर उत्तर कुंजी खोलें। फिर पेज पर <strong>Ctrl+A</strong> (पूरा सेलेक्ट) → <strong>Ctrl+C</strong> (कॉपी) करें और नीचे बॉक्स में पेस्ट करें।
+              </p>
+            </div>
+            <a
+              href="https://g2sg4crt2026.cbtexam.in/Candidate04F/ObjectionExistingUser.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
+            >
+              <span>ESB पोर्टल पर उत्तर कुंजी खोलें</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
 
           <textarea
@@ -379,10 +424,10 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
         {parsed && (
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="mb-1 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white sm:text-lg">
-              2 · जाँच लें — यही गिनती सेव होगी
+              2 · उत्तर कुंजी से पढ़ा गया विवरण (सुरक्षित व अपरिवर्तनीय)
             </h2>
             <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-              जो दिख रहा है वह पेस्ट से पढ़ा गया है। गलत लगे तो नीचे ठीक करें; सब सही हो तो सेव करें।
+              यह जानकारी आपकी उत्तर कुंजी से स्वतः पढ़ी गई है। निष्पक्षता बनाए रखने के लिए इसमें कोई बदलाव नहीं किया जा सकता।
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -402,40 +447,46 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
                 </div>
               </Field>
               <Field label="शिफ्ट / पारी (Shift)">
-                <select
-                  value={editShift}
-                  onChange={(e) => setEditShift(Number(e.target.value))}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                >
-                  {EXAM_SHIFTS.map((s) => (
-                    <option key={s.shiftNumber} value={s.shiftNumber}>
-                      Shift {s.shiftNumber} · {s.displayDate} · {s.timeLabel}
-                    </option>
-                  ))}
-                </select>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                  Shift {parsed.shiftNumber || 1} {shift ? `· ${shift.displayDate} · ${shift.timeLabel}` : ''}
+                </div>
               </Field>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Num label="सही (Correct)" value={editCorrect} min={0} max={editTotal} onChange={setEditCorrect} tone="ok" />
-              <Num label="गलत (Wrong)" value={editWrong} min={0} max={editTotal} onChange={setEditWrong} tone="bad" />
-              <Num label="कुल प्रश्न (Total)" value={editTotal} min={1} max={400} onChange={setEditTotal} />
+              <div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  सही (Correct)
+                </div>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+                  {parsed.correct}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
+                  गलत (Wrong)
+                </div>
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-bold text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">
+                  {parsed.wrong}
+                </div>
+              </div>
               <div>
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  कुल प्रश्न (Total)
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+                  {parsed.totalQuestions}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                   स्कोर (स्वतः)
                 </div>
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-                  RAW {score.rawScore.toFixed(2)} · {score.accuracy.toFixed(2)}% · अनुत्तीर्ण {score.unattempted}
+                  RAW {score.rawScore.toFixed(2)} · {score.accuracy.toFixed(2)}% · अनुत्तरित {score.unattempted}
                 </div>
               </div>
             </div>
-
-            {mismatch && (
-              <p className="mt-3 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-200">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                आप ESB पेज पर छपी संख्या सुधार रहे हैं (पेस्ट से {parsed.correct} सही / {parsed.wrong} गलत पढ़ा गया था)। सुधार की गई गिनती ही सेव होगी — यह आपके रैंक कार्ड पर "सुधारित" के रूप में दिखेगा।
-              </p>
-            )}
 
             {(parsed.warnings || []).length > 0 && (
               <ul className="mt-3 space-y-1.5">
@@ -461,13 +512,13 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
         )}
 
         {/* ------------------------------------------------------------------ */}
-        {/* 3 · profile fields — the only editable ones                        */}
+        {/* 3 · profile fields — the only selectable ones                      */}
         {/* ------------------------------------------------------------------ */}
         {parsed && (
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="mb-1 text-base font-bold text-slate-900 dark:text-white sm:text-lg">3 · आपकी जानकारी (केवल यही बदल सकते हैं)</h2>
+            <h2 className="mb-1 text-base font-bold text-slate-900 dark:text-white sm:text-lg">3 · आपकी जानकारी (श्रेणी, लिंग, कोटा व योग्यता चुनें)</h2>
             <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-              नाम, रोल नंबर, शिफ्ट और गिनती पेज से पढ़े जाते हैं — उन्हें कहीं से नहीं बदला जा सकता।
+              नाम, रोल नंबर, शिफ्ट और उत्तरों की गिनती लॉक है — निष्पक्षता हेतु केवल श्रेणी, लिंग, विशेष कोटा व योग्यताएँ चुनें।
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -499,17 +550,72 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
               </Field>
             </div>
 
-            <div className="mt-4">
+            {/* Special reservation / quota categories */}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-amber-400 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:border-amber-500">
+                <input
+                  type="checkbox"
+                  checked={contractStatus}
+                  onChange={(e) => setContractStatus(e.target.checked)}
+                  className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+                />
+                <div>
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">
+                    संविदा कर्मचारी (Samvidha Quota)
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                    म.प्र. शासन 20% संविदा आरक्षित पदों के लिए पात्र
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 transition hover:border-amber-400 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:border-amber-500">
+                <input
+                  type="checkbox"
+                  checked={exServiceman}
+                  onChange={(e) => setExServiceman(e.target.checked)}
+                  className="h-4 w-4 rounded text-amber-600 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+                />
+                <div>
+                  <span className="block text-xs font-bold text-slate-800 dark:text-slate-100">
+                    भूतपूर्व सैनिक (Ex-Serviceman Quota)
+                  </span>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                    सशस्त्र सेनाओं के भूतपूर्व सैनिक आरक्षण हेतु
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-5">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  योग्यताएँ (जितनी चाहें चुनें) · {qualifications.length} चुनी
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    शैक्षणिक व तकनीकी योग्यताएँ · {qualifications.length} चुनी गईं
+                  </span>
+                  <button
+                    type="button"
+                    onClick={selectAllQuals}
+                    className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200"
+                  >
+                    सभी चुनें
+                  </button>
+                  {qualifications.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllQuals}
+                      className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                    >
+                      हटाएं
+                    </button>
+                  )}
+                </div>
                 <label className="relative flex items-center">
                   <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-slate-400" />
                   <input
                     value={qualQuery}
                     onChange={(e) => setQualQuery(e.target.value)}
-                    placeholder="खोजें: B.Com, डिप्लोमा, CPCT…"
+                    placeholder="खोजें: CPCT, B.Com, DCA, स्टेनो…"
                     className="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-8 pr-2 text-xs text-slate-800 outline-none focus:border-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 sm:w-64"
                   />
                 </label>
@@ -531,35 +637,47 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
                 </div>
               )}
 
-              <div className="max-h-64 space-y-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                {filteredGroups.map((group) => (
-                  <div key={group.id}>
-                    <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
-                      {group.label}
+              <div className="max-h-80 space-y-3 overflow-auto rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                {filteredGroups.map((group) => {
+                  const allInGroup = group.items.every((item) => qualifications.includes(item));
+                  return (
+                    <div key={group.id} className="rounded-lg border border-slate-200/60 bg-white/60 p-2.5 dark:border-slate-800/60 dark:bg-slate-900/50">
+                      <div className="mb-1 flex items-center justify-between">
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+                          {group.label}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleGroupQuals(group.items)}
+                          className="text-[10px] font-medium text-amber-700 hover:underline dark:text-amber-400"
+                        >
+                          {allInGroup ? 'ग्रुप अनसेलेक्ट' : 'ग्रुप के सभी चुनें'}
+                        </button>
+                      </div>
+                      {group.hint && <div className="mb-2 text-[10px] text-slate-500 dark:text-slate-400">{group.hint}</div>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.items.map((q) => {
+                          const on = qualifications.includes(q);
+                          return (
+                            <button
+                              key={q}
+                              type="button"
+                              onClick={() => toggleQual(q)}
+                              aria-pressed={on}
+                              className={`rounded-lg border px-2 py-1 text-[11px] transition ${
+                                on
+                                  ? 'border-amber-500 bg-amber-100 font-semibold text-amber-900 dark:bg-amber-500/20 dark:text-amber-100'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                              }`}
+                            >
+                              {on ? '✓ ' : ''}{q}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    {group.hint && <div className="mb-1.5 text-[10px] text-slate-500 dark:text-slate-400">{group.hint}</div>}
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.items.map((q) => {
-                        const on = qualifications.includes(q);
-                        return (
-                          <button
-                            key={q}
-                            type="button"
-                            onClick={() => toggleQual(q)}
-                            aria-pressed={on}
-                            className={`rounded-lg border px-2 py-1 text-[11px] transition ${
-                              on
-                                ? 'border-amber-500 bg-amber-100 font-semibold text-amber-900 dark:bg-amber-500/20 dark:text-amber-100'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
-                            }`}
-                          >
-                            {q}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {!filteredGroups.length && (
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     "{qualQuery}" से कुछ नहीं मिला — {MASTER_QUALIFICATIONS.length} विकल्पों में से खोजें।
@@ -567,7 +685,7 @@ export const PasteAnswerKeyView: React.FC<Props> = ({ onSubmissionSuccess, known
                 )}
               </div>
               <p className="mt-2 text-[10px] text-slate-500 dark:text-slate-400">
-                यह सूची केवल लीडरबोर्ड फ़िल्टर के लिए है। पद के लिए असली शैक्षिक योग्यता नियम पुस्तिका से ही जाँचें — यह ऐप पात्रता का दावा नहीं करता।
+                नोटिफिकेशन की नियम पुस्तिका से ली गई योग्यताएं। आप एक या एक से अधिक योग्यताएं चुन सकते हैं।
               </p>
             </div>
 
@@ -621,34 +739,6 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 
-const Num: React.FC<{
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  tone?: 'ok' | 'bad';
-  onChange: (v: number) => void;
-}> = ({ label, value, min, max, tone, onChange }) => (
-  <label className="block">
-    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
-    <input
-      type="number"
-      inputMode="numeric"
-      min={min}
-      max={max}
-      value={value}
-      onChange={(e) => onChange(Math.max(min, Math.min(max, Number(e.target.value) || 0)))}
-      className={`w-full rounded-lg border px-3 py-2 text-sm font-bold tabular-nums outline-none focus:ring-2 dark:bg-slate-800 ${
-        tone === 'ok'
-          ? 'border-emerald-300 bg-emerald-50 text-emerald-900 focus:border-emerald-500 focus:ring-emerald-500/20 dark:bg-emerald-950/30 dark:text-emerald-200'
-          : tone === 'bad'
-            ? 'border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-500 focus:ring-rose-500/20 dark:bg-rose-950/30 dark:text-rose-200'
-            : 'border-slate-300 bg-white text-slate-800 focus:border-amber-500 focus:ring-amber-500/20 dark:border-slate-700 dark:text-slate-100'
-      }`}
-    />
-  </label>
-);
-
 /**
  * The three steps, in Hindi and English, right where the eyes land first.
  * Written for a phone as much as for a laptop — most candidates will do this on
@@ -658,6 +748,28 @@ const HowToPaste: React.FC = () => {
   const [open, setOpen] = useState(true);
   return (
     <section className="overflow-hidden rounded-2xl border-2 border-amber-400/70 bg-gradient-to-br from-amber-50 to-white shadow-sm dark:border-amber-500/40 dark:from-amber-950/30 dark:to-slate-900">
+      {/* Direct ESB Answer Key Portal Quick Access Bar */}
+      <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600/15 via-indigo-600/10 to-amber-500/10 border-b border-amber-300 dark:border-amber-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-bold text-blue-950 dark:text-blue-200">
+            <ExternalLink className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span>ESB वेबसाइट से सीधे अपनी Answer Key देखें</span>
+          </div>
+          <p className="text-xs text-slate-700 dark:text-slate-300">
+            पोर्टल पर अपना <strong>Roll Number</strong>, <strong>Date of Birth (DOB)</strong>, प्रवेश पत्र पर अंकित <strong>TAC Code</strong> और <strong>Captcha</strong> भरें — आपकी पूरी उत्तर कुंजी आ जाएगी।
+          </p>
+        </div>
+        <a
+          href="https://g2sg4crt2026.cbtexam.in/Candidate04F/ObjectionExistingUser.aspx"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition-all shrink-0 cursor-pointer"
+        >
+          <span>यहाँ क्लिक करके Answer Key खोलें</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
+
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -665,7 +777,7 @@ const HowToPaste: React.FC = () => {
       >
         <span className="flex items-center gap-2 text-sm font-extrabold text-amber-950 dark:text-amber-100 sm:text-base">
           <span className="grid h-6 w-6 place-items-center rounded-full bg-amber-500 text-xs font-black text-white">3</span>
-          केवल 3 स्टेप — उत्तर कुंजी पेस्ट करें, रैंक देखें · Just 3 steps
+          केवल 3 आसान स्टेप्स — उत्तर कुंजी कॉपी करें, यहाँ पेस्ट करें, रैंक देखें
         </span>
         <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-200">{open ? 'छिपाएँ ▲' : 'खोलें ▼'}</span>
       </button>
@@ -677,40 +789,56 @@ const HowToPaste: React.FC = () => {
               n: 1,
               hi: 'अपना "Response Sheet / उत्तर कुंजी" पेज खोलें',
               en: 'Open your Response Sheet page on the ESB site',
-              tip: 'जिस पेज पर आपके सारे प्रश्न, दिया गया उत्तर और सही उत्तर दिख रहा है।',
+              tip: 'ESB पोर्टल पर Roll Number + जन्मतिथि + TAC कोड + Captcha भरकर अपनी आंसर की खोलें।',
+              link: 'https://g2sg4crt2026.cbtexam.in/Candidate04F/ObjectionExistingUser.aspx',
+              linkText: 'सीधे ESB पोर्टल लिंक ↗',
             },
             {
               n: 2,
-              hi: 'पूरा पेज सेलेक्ट करें',
+              hi: 'पूरा पेज सेलेक्ट करें (Ctrl + A)',
               en: 'Select the whole page',
               tip: 'लैपटॉप/PC: कहीं भी क्लिक करके Ctrl + A · मोबाइल: स्क्रीन पर अंगुली दबाकर रखें → "सभी चुनें / Select all"',
             },
             {
               n: 3,
-              hi: 'कॉपी करके नीचे पेस्ट करें',
+              hi: 'कॉपी करके नीचे बॉक्स में पेस्ट करें (Ctrl + V)',
               en: 'Copy, then paste in the box below',
-              tip: 'लैपटॉप/PC: Ctrl + C फिर यह बॉक्स → Ctrl + V · मोबाइल: लंबा दबाकर Copy → यहाँ Paste',
+              tip: 'लैपटॉप/PC: Ctrl + C फिर नीचे बॉक्स → Ctrl + V · मोबाइल: लंबा दबाकर Copy → यहाँ Paste',
             },
           ].map((step) => (
             <li
               key={step.n}
-              className="rounded-xl border border-amber-200/80 bg-white p-3 dark:border-amber-900/40 dark:bg-slate-900/70"
+              className="rounded-xl border border-amber-200/80 bg-white p-3 dark:border-amber-900/40 dark:bg-slate-900/70 flex flex-col justify-between"
             >
-              <div className="mb-1 flex items-center gap-2">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-amber-600 text-[11px] font-black text-white">
-                  {step.n}
-                </span>
-                <span className="text-[13px] font-bold leading-snug text-slate-900 dark:text-white">{step.hi}</span>
+              <div>
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="grid h-5 w-5 place-items-center rounded-full bg-amber-600 text-[11px] font-black text-white">
+                    {step.n}
+                  </span>
+                  <span className="text-[13px] font-bold leading-snug text-slate-900 dark:text-white">{step.hi}</span>
+                </div>
+                <div className="text-[11px] font-medium italic text-slate-500 dark:text-slate-400">{step.en}</div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">{step.tip}</p>
               </div>
-              <div className="text-[11px] font-medium italic text-slate-500 dark:text-slate-400">{step.en}</div>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">{step.tip}</p>
+              {step.link && (
+                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <a
+                    href={step.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <span>{step.linkText}</span>
+                  </a>
+                </div>
+              )}
             </li>
           ))}
         </ol>
       )}
 
       <p className="border-t border-amber-200/70 bg-amber-100/50 px-4 py-2 text-[11px] font-medium text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
-        ध्यान रहे: फ़ाइल सेव करने / भेजने की ज़रूरत नहीं है — पेस्ट की गई सामग्री आपके ब्राउज़र से बाहर नहीं जाती। सर्वर पर केवल नाम, रोल नंबर, शिफ्ट-तारीख, सही, गलत, प्रयासित व अनुत्तीर्ण संख्या सेव होती है।
+        ध्यान रहे: फ़ाइल सेव करने / भेजने की ज़रूरत नहीं है — पेस्ट की गई सामग्री आपके ब्राउज़र से बाहर नहीं जाती। सर्वर पर केवल नाम, रोल नंबर, शिफ्ट-तारीख, सही, गलत, प्रयासित व अनुत्तरित संख्या सेव होती है।
       </p>
     </section>
   );

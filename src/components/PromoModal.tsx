@@ -115,7 +115,7 @@ export function PromoModal({ open, onClose }: PromoModalProps) {
 
           <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
             <Sparkles className="h-3 w-3" />
-            Rank Mitra
+            MPESB G2SG4
           </p>
           <h2 id="promo-title" className="mt-2 text-lg font-extrabold leading-snug">
             उत्तर कुंजी पेस्ट कीजिए, रैंक तुरंत देखिए

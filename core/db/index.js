@@ -45,11 +45,11 @@ export async function createDriver(cfg, bindings = {}) {
       throw new SqlError("The 'pg' package is required for Postgres. Run: npm install pg");
     });
     const pool = new pg.Pool({
-      connectionString: cfg.databaseUrl,
+      connectionString: cfg.databaseUrl.replace(/[?&]sslmode=[^&]+/g, ''),
       ssl: /localhost|127\.0\.0\.1/.test(cfg.databaseUrl) ? false : { rejectUnauthorized: false },
       max: 4,
-      idleTimeoutMillis: 8000,
-      connectionTimeoutMillis: 8000,
+      idleTimeoutMillis: 15000,
+      connectionTimeoutMillis: 15000,
     });
     const driver = new PostgresDriver(pool);
     // Zero manual SQL for the operator: a brand-new Supabase/Neon database is

@@ -56,6 +56,8 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
   // Editable fields state
   const [editCategory, setEditCategory] = useState<Category>(candidate?.category || 'UR');
   const [editGender, setEditGender] = useState<Gender>(candidate?.gender || 'Male');
+  const [editExServiceman, setEditExServiceman] = useState<boolean>(candidate?.exServiceman || false);
+  const [editContractStatus, setEditContractStatus] = useState<boolean>(candidate?.contractStatus || false);
   const [editQualifications, setEditQualifications] = useState<string[]>(candidate?.qualifications || []);
 
   // The card is reused when the selected roll changes (search, leaderboard
@@ -64,6 +66,8 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
   React.useEffect(() => {
     setEditCategory(candidate?.category || 'UR');
     setEditGender(candidate?.gender || 'Male');
+    setEditExServiceman(candidate?.exServiceman || false);
+    setEditContractStatus(candidate?.contractStatus || false);
     setEditQualifications(candidate?.qualifications || []);
     setEditSuccessMessage(null);
     setSaveError(null);
@@ -89,6 +93,8 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
     if (!candidate) return;
     setEditCategory(candidate.category);
     setEditGender(candidate.gender);
+    setEditExServiceman(candidate.exServiceman || false);
+    setEditContractStatus(candidate.contractStatus || false);
     setEditQualifications(candidate.qualifications || []);
     setIsEditing(true);
     setEditSuccessMessage(null);
@@ -102,9 +108,10 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
 
     void (async () => {
       const res = await repository.updateProfile(candidate.rollNumber, {
-        // The ONLY three fields a candidate may change (blueprint + product rule).
         category: editCategory,
         gender: editGender,
+        exServiceman: editExServiceman,
+        contractStatus: editContractStatus,
         qualifications: editQualifications,
       });
       setSaving(false);
@@ -526,6 +533,7 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
                     <option value="SC">SC (अनुसूचित जाति)</option>
                     <option value="ST">ST (अनुसूचित जनजाति)</option>
                     <option value="EWS">EWS (आर्थिक रूप से कमजोर)</option>
+                    <option value="PWD">PWD (दिव्यांग / दिव्यांगजन)</option>
                   </select>
                 </div>
 
@@ -543,11 +551,51 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
                 </div>
               </div>
 
+              {/* Quota checkboxes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editContractStatus}
+                    onChange={(e) => setEditContractStatus(e.target.checked)}
+                    className="rounded border-slate-400 dark:border-slate-700 text-amber-500"
+                  />
+                  <span>संविदा कर्मचारी (Samvidha - 20% कोटा)</span>
+                </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editExServiceman}
+                    onChange={(e) => setEditExServiceman(e.target.checked)}
+                    className="rounded border-slate-400 dark:border-slate-700 text-amber-500"
+                  />
+                  <span>भूतपूर्व सैनिक (Ex-Serviceman कोटा)</span>
+                </label>
+              </div>
+
               {/* Qualifications */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  शैक्षणिक योग्यताएं (Qualifications)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    शैक्षणिक योग्यताएं · {editQualifications.length} चुनी
+                  </label>
+                  <div className="flex gap-2 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setEditQualifications(QUALIFICATION_GROUPS.flatMap((g) => g.items))}
+                      className="text-amber-700 dark:text-amber-400 font-semibold hover:underline"
+                    >
+                      सभी चुनें
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditQualifications([])}
+                      className="text-slate-500 hover:underline"
+                    >
+                      हटाएं
+                    </button>
+                  </div>
+                </div>
                 <div className="max-h-56 space-y-2.5 overflow-y-auto p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                   {QUALIFICATION_GROUPS.map((group) => (
                     <div key={group.id}>

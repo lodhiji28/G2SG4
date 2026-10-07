@@ -270,6 +270,35 @@ export async function bulkUpsert(db, examId, rows, onEach) {
 /* ----------------------------------------------------------- aggregates --- */
 
 export async function shiftStats(db, examId) {
+  if (db.kind === 'postgres') {
+    const rows = await db.all(
+      `SELECT shift_number,
+              COUNT(*)                                                          AS candidate_count,
+              AVG(raw_score)                                                    AS avg_raw_score,
+              PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY raw_score)           AS median_raw_score,
+              AVG(accuracy)                                                     AS avg_accuracy,
+              AVG(attempted)                                                    AS avg_attempted,
+              AVG(correct)                                                      AS avg_correct,
+              AVG(wrong)                                                        AS avg_wrong,
+              MAX(raw_score)                                                    AS highest_raw_score,
+              MIN(raw_score)                                                    AS lowest_raw_score
+         FROM candidates WHERE exam_id = ? GROUP BY shift_number ORDER BY shift_number`,
+      [examId]
+    );
+    return rows.map((r) => ({
+      shiftNumber: Number(r.shift_number),
+      candidateCount: Number(r.candidate_count || 0),
+      avgRawScore: round2(r.avg_raw_score),
+      medianRawScore: round2(r.median_raw_score ?? r.avg_raw_score),
+      avgAccuracy: round2(r.avg_accuracy),
+      avgAttempted: round2(r.avg_attempted),
+      avgCorrect: round2(r.avg_correct),
+      avgWrong: round2(r.avg_wrong),
+      highestRawScore: round2(r.highest_raw_score),
+      lowestRawScore: round2(r.lowest_raw_score),
+    }));
+  }
+
   const rows = await db.all(
     `SELECT shift_number,
             COUNT(*)        AS candidate_count,
@@ -326,12 +355,40 @@ export async function summaryStats(db, examId) {
     [examId]
   );
 
-  const scores = await allScores(db, examId);
+  // Compute 10 histogram buckets directly in SQL (works identical in SQLite & Postgres):
+  const hist = await db.get(
+    `SELECT
+       SUM(CASE WHEN raw_score > 0   AND raw_score <= 20  THEN 1 ELSE 0 END) AS b0,
+       SUM(CASE WHEN raw_score > 20  AND raw_score <= 40  THEN 1 ELSE 0 END) AS b1,
+       SUM(CASE WHEN raw_score > 40  AND raw_score <= 60  THEN 1 ELSE 0 END) AS b2,
+       SUM(CASE WHEN raw_score > 60  AND raw_score <= 80  THEN 1 ELSE 0 END) AS b3,
+       SUM(CASE WHEN raw_score > 80  AND raw_score <= 100 THEN 1 ELSE 0 END) AS b4,
+       SUM(CASE WHEN raw_score > 100 AND raw_score <= 120 THEN 1 ELSE 0 END) AS b5,
+       SUM(CASE WHEN raw_score > 120 AND raw_score <= 140 THEN 1 ELSE 0 END) AS b6,
+       SUM(CASE WHEN raw_score > 140 AND raw_score <= 160 THEN 1 ELSE 0 END) AS b7,
+       SUM(CASE WHEN raw_score > 160 AND raw_score <= 180 THEN 1 ELSE 0 END) AS b8,
+       SUM(CASE WHEN raw_score > 180 AND raw_score <= 200 THEN 1 ELSE 0 END) AS b9
+     FROM candidates WHERE exam_id = ?`,
+    [examId]
+  );
+
   const buckets = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200];
   const histogram = buckets.slice(0, -1).map((lo, i) => {
     const hi = buckets[i + 1];
-    return { from: lo, to: hi, count: scores.filter((s) => s.raw_score > lo && s.raw_score <= hi).length };
+    return { from: lo, to: hi, count: Number(hist?.[`b${i}`] || 0) };
   });
+
+  let medianScore = 0;
+  if (db.kind === 'postgres') {
+    const medRow = await db.get(
+      `SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY raw_score) AS med FROM candidates WHERE exam_id = ?`,
+      [examId]
+    );
+    medianScore = round2(medRow?.med ?? totals?.avg_score);
+  } else {
+    const scores = await allScores(db, examId);
+    medianScore = round2(median(scores.map((s) => s.raw_score)));
+  }
 
   return {
     totalCandidates: Number(totals?.n || 0),
@@ -349,7 +406,7 @@ export async function summaryStats(db, examId) {
     })),
     byGender: byGender.map((r) => ({ gender: r.gender, count: Number(r.n), avgScore: round2(r.avg_score) })),
     histogram,
-    medianRawScore: round2(median(scores.map((s) => s.raw_score))),
+    medianRawScore: medianScore,
   };
 }
 

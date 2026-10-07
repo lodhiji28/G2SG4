@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { CandidateRecord, FilterState } from '../types';
 import { RawMarksDisclaimer } from './RawMarksDisclaimer';
 import { FilterBar } from './FilterBar';
+import { ToppersHub } from './ToppersHub';
+import { filterCandidates } from '../lib/filterUtils';
 import { 
   Trophy, 
   Medal, 
@@ -30,35 +32,21 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     category: 'all',
     gender: 'all',
     qualification: 'all',
+    stream: 'all',
     searchQuery: '',
+    scoreMin: '',
+    scoreMax: '',
+    contractStatus: 'all',
+    exServiceman: 'all',
+    shiftSlot: 'all',
   });
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 50;
 
-  // 1. Filter candidates
+  // 1. Filter candidates using shared filter utility
   const filteredList = useMemo(() => {
-    return candidates.filter((c) => {
-      if (filters.shiftNumber && filters.shiftNumber !== 'all' && c.shiftNumber !== filters.shiftNumber) {
-        return false;
-      }
-      if (filters.category && filters.category !== 'all' && c.category !== filters.category) {
-        return false;
-      }
-      if (filters.gender && filters.gender !== 'all' && c.gender !== filters.gender) {
-        return false;
-      }
-      if (filters.qualification && filters.qualification !== 'all' && !c.qualifications?.includes(filters.qualification)) {
-        return false;
-      }
-      if (filters.searchQuery) {
-        const q = filters.searchQuery.toLowerCase().trim();
-        const matchesName = (c.candidateNamePrivate || '').toLowerCase().includes(q) || c.candidateNamePublic.toLowerCase().includes(q);
-        const matchesRoll = c.rollNumber.toLowerCase().includes(q);
-        if (!matchesName && !matchesRoll) return false;
-      }
-      return true;
-    });
+    return filterCandidates(candidates, filters);
   }, [candidates, filters]);
 
   // 2. Sort by Raw Score DESC and assign competition rank (1, 2, 2, 4)
@@ -102,6 +90,9 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       </div>
 
       <RawMarksDisclaimer />
+
+      {/* Subject, Stream, Gender & Category Toppers Gallery */}
+      <ToppersHub candidates={candidates} onSelectCandidate={onSelectCandidate} />
 
       {/* Filter Bar */}
       <FilterBar
@@ -271,9 +262,21 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                       </td>
 
                       <td className="py-3 px-4 font-sans">
-                        <span className="text-slate-700 dark:text-slate-300 font-medium">
-                          {c.category === 'UR' ? 'UR' : c.category}
-                        </span>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-slate-700 dark:text-slate-300 font-medium">
+                            {c.category === 'UR' ? 'UR' : c.category}
+                          </span>
+                          {c.contractStatus && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300">
+                              संविदा
+                            </span>
+                          )}
+                          {c.exServiceman && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300">
+                              Ex-SM
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4 font-sans text-slate-500 dark:text-slate-400">

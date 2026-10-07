@@ -10,7 +10,7 @@
  *
  *   npm run verify:paste
  */
-import { readFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseHTML } from 'linkedom';
@@ -51,9 +51,14 @@ const call = async (method, p, body, headers = {}) => {
   return { status: res.status, json, text, headers: res.headers };
 };
 
-const file = path.resolve('samples/real/Response Sheet 1.html');
+const fileCandidates = [
+  path.resolve('samples/real/Response Sheet 1.html'),
+  path.resolve('Response Sheet 1.html'),
+];
+const file = fileCandidates.find((f) => existsSync(f));
 let markup;
 try {
+  if (!file) throw new Error('File not found');
   markup = readFileSync(file, 'utf8');
 } catch {
   console.log('  skip  samples/real/Response Sheet 1.html नहीं मिला — यह स्क्रिप्ट असली फ़ाइल पर चलती है।');
@@ -82,7 +87,7 @@ console.log(
   `   ${pasted.length.toLocaleString('en-IN')} अक्षर पढ़े → रोल ${out.rollNumber} · ${out.candidateName} · ${out.examDate} · Shift ${out.shiftNumber}`
 );
 console.log(
-  `   सही ${out.correct} · गलत ${out.wrong} · प्रयासित ${out.attempted} · अनुत्तीर्ण ${out.unattempted} · RAW ${out.rawScore} · ${out.confidence} · ${ms} ms`
+  `   सही ${out.correct} · गलत ${out.wrong} · प्रयासित ${out.attempted} · अनुत्तरित ${out.unattempted} · RAW ${out.rawScore} · ${out.confidence} · ${ms} ms`
 );
 if (out.confidence !== 'VERIFIED') throw new Error('confidence VERIFIED होनी चाहिए थी');
 if (ms > 1200) throw new Error(`${ms} ms — बहुत धीमा`);

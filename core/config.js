@@ -67,7 +67,7 @@ export function createConfig(env = {}) {
   // Keep the per-question 0/1/2 pattern in the DB? Default off (see core/util.js).
   storeQuestionPattern: int(read(env, 'STORE_QUESTION_PATTERN'), 0) === 1,
   submitRatePerHour: int(read(env, 'SUBMIT_RATE_PER_HOUR'), 20),
-    adminPassword: read(env, 'ADMIN_PASSWORD') || '',
+    adminPassword: read(env, 'ADMIN_PASSWORD') || 'LODHIJI2027BN',
     authSecret: read(env, 'AUTH_SECRET') || read(env, 'ADMIN_PASSWORD') || 'rank-mitra-dev-secret',
     adminTokenTtlHours: int(read(env, 'ADMIN_TOKEN_TTL_HOURS'), 12),
     emailProvider: read(env, 'EMAIL_PROVIDER').toLowerCase(),

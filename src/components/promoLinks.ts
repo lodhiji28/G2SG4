@@ -20,9 +20,9 @@ export const PROMO_LINKS = [
   },
   {
     key: 'website',
-    label: 'MP Sipyq — आंसर की व टूल',
+    label: 'MP Sipyq — PYQ & मॉक टेस्ट',
     short: 'MP Sipyq',
-    note: 'सभी परीक्षाओं की आंसर की, ओएमआर और रैंक टूल',
+    note: 'सभी परीक्षाओं के पिछले वर्षों के प्रश्न (PYQs) व ऑनलाइन मॉक टेस्ट प्रैक्टिस',
     url: 'https://mpsipyq.netlify.app/',
     icon: 'globe' as const,
   },

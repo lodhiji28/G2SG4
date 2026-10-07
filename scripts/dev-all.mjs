@@ -9,10 +9,12 @@ import { spawn } from 'node:child_process';
 const children = [];
 
 function run(label, command, args, color) {
+  const isWin = process.platform === 'win32';
+  const isNpm = command === 'npm';
   const child = spawn(command, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,
-    shell: false,
+    shell: isWin && isNpm,
   });
   const prefix = `\x1b[${color}m[${label}]\x1b[0m `;
   const pipe = (stream, target) => {

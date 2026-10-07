@@ -25,6 +25,7 @@ import { PasteAnswerKeyView } from './components/PasteAnswerKeyView';
 import { TopPasteGuide } from './components/TopPasteGuide';
 import { PromoBar } from './components/PromoBar';
 import { PromoModal } from './components/PromoModal';
+import { FloatingCommunityWidget } from './components/FloatingCommunityWidget';
 import { PROMO_LINKS } from './components/promoLinks';
 import { MethodologyView } from './components/MethodologyView';
 import { AdminView } from './components/AdminView';
@@ -251,12 +252,40 @@ export default function App() {
         )}
       </main>
 
+      {/* Bottom Community Banner */}
+      <section className="border-t border-amber-500/20 bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950/80 px-4 py-4 text-white">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+          <div>
+            <h4 className="text-sm font-bold text-amber-300">
+              MPESB G2SG4 आधिकारिक अपडेट्स व PYQs
+            </h4>
+            <p className="text-xs text-slate-300">
+              TopperView Telegram चैनल, MP Sipyq और सहायता के लिए हमसे जुड़े रहें।
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {PROMO_LINKS.map((link) => (
+              <a
+                key={link.key}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/20 hover:text-white"
+              >
+                <span>{link.short}</span>
+                <span className="text-[10px] text-amber-400">↗</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Clean Trustworthy Footer */}
       <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs py-8 px-4 sm:px-6 lg:px-8 mt-auto transition-colors">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
-              <span className="font-bold text-slate-900 dark:text-white text-sm">Rank Mitra / Rank Guru</span>
+              <span className="font-bold text-slate-900 dark:text-white text-sm">MPESB G2SG4</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
                 MPESB Group-2 Sub-Group-4
               </span>
@@ -304,6 +333,9 @@ export default function App() {
 
       {/* First-visit popup — one-time, dismissible with ✕ / Esc / बाहर का क्लिक */}
       <PromoModal />
+
+      {/* Floating community hub on side */}
+      <FloatingCommunityWidget />
     </div>
   );
 }

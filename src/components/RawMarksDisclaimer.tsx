@@ -30,7 +30,7 @@ export const RawMarksDisclaimer: React.FC<DisclaimerProps> = ({ compact }) => {
             <span className="text-xs text-amber-700 dark:text-amber-400/90 font-mono font-medium">चरण-1 विश्लेषिकी</span>
           </div>
           <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-            यह विश्लेषण केवल <strong>Rank Mitra</strong> पर प्रस्तुत उम्मीदवारों के वास्तविक उत्तर-कुंजी डेटा (Raw Marks = Correct × 1.0 − Wrong × 0.25) पर आधारित है। इसमें किसी प्रकार का Normalization लागू नहीं किया गया है। यह आधिकारिक MPESB परिणाम, मेरिट या चयन की गारंटी नहीं है।
+            यह विश्लेषण केवल <strong>MPESB G2SG4</strong> पर प्रस्तुत उम्मीदवारों के वास्तविक उत्तर-कुंजी डेटा (Raw Marks = Correct × 1.0 − Wrong × 0.25) पर आधारित है। इसमें किसी प्रकार का Normalization लागू नहीं किया गया है। यह आधिकारिक MPESB परिणाम, मेरिट या चयन की गारंटी नहीं है।
           </p>
         </div>
       </div>

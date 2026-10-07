@@ -131,7 +131,7 @@ export const MethodologyView: React.FC<Props> = ({ candidates = [] }) => {
 
         <div className="text-xs text-slate-700 dark:text-slate-300 space-y-2 leading-relaxed">
           <p>
-            Rank Mitra मानक <strong>प्रतियोगिता रैंकिंग (Standard Competition Ranking)</strong> का उपयोग करता है:
+            MPESB G2SG4 मानक <strong>प्रतियोगिता रैंकिंग (Standard Competition Ranking)</strong> का उपयोग करता है:
           </p>
           <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono text-slate-800 dark:text-slate-200">
             यदि दो या अधिक अभ्यर्थियों के रॉ अंक समान (Tie) होते हैं, तो उन्हें समान रैंक प्रदान की जाती है और अगले स्थान को तदनुसार आगे बढ़ाया जाता है (उदा. 1, 2, 2, 4)।

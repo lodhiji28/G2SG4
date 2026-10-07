@@ -1,4 +1,4 @@
-export type Category = 'UR' | 'OBC' | 'SC' | 'ST' | 'EWS';
+export type Category = 'UR' | 'OBC' | 'SC' | 'ST' | 'EWS' | 'PWD';
 
 export type Gender = 'Male' | 'Female' | 'Other';
 
@@ -120,11 +120,16 @@ export interface FilterState {
   category?: Category | 'all';
   gender?: Gender | 'all';
   qualification?: string | 'all';
+  qualifications?: string[];
+  stream?: string | 'all';
   /** post code the candidate put in their preference list (blueprint #25) */
   postPreference?: string | 'all';
   searchQuery?: string;
-  scoreMin?: number;
-  scoreMax?: number;
+  scoreMin?: number | '';
+  scoreMax?: number | '';
+  contractStatus?: boolean | 'all';
+  exServiceman?: boolean | 'all';
+  shiftSlot?: 'all' | 'Morning' | 'Afternoon';
 }
 
 export interface ShiftStats {

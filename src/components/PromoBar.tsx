@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Send, Globe, MessageSquareText } from 'lucide-react';
+import { Send, Globe, MessageSquareText, Sparkles, ExternalLink } from 'lucide-react';
 import { PROMO_LINKS } from './promoLinks';
 
 const ICONS = {
@@ -14,36 +14,48 @@ const ICONS = {
 } as const;
 
 /**
- * Thin community strip shown on every page, above the paste guide.
- * Three links only — Telegram channel, MP Sipyq, contact the owner.
- *
- * It is deliberately light: no fixed height, no z-index war with the sticky
- * header, and on small screens it just scrolls sideways instead of wrapping
- * into three tall rows.
+ * Premium community announcement banner shown at the top of every page.
+ * Provides instant access to TopperView Telegram, MP Sipyq, and Owner support.
  */
 export function PromoBar() {
   return (
-    <div className="w-full bg-slate-900 text-slate-100 dark:bg-black border-b border-slate-800">
-      <div className="w-full px-3 py-1.5 flex items-center gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center sm:flex-wrap sm:whitespace-normal">
-        <span className="shrink-0 text-[11px] font-bold tracking-wide text-amber-300 sm:hidden">
-          जुड़ें
-        </span>
-        {PROMO_LINKS.map((link) => {
-          const Icon = ICONS[link.icon];
-          return (
-            <a
-              key={link.key}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              title={link.note}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/80 hover:bg-slate-700 hover:border-amber-400/60 hover:text-white px-2.5 py-1 text-[11px] sm:text-xs font-semibold transition-colors"
-            >
-              <Icon className="h-3.5 w-3.5 text-amber-300" />
-              {link.short}
-            </a>
-          );
-        })}
+    <div className="relative w-full border-b border-amber-500/20 bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950/90 text-slate-100 shadow-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:px-6">
+        {/* Left Badge: Live / Official Notice */}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="flex h-2 w-2 relative">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+          </span>
+          <span className="hidden items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-300 md:inline-flex">
+            <Sparkles className="h-3 w-3" />
+            MPESB G2SG4 कम्युनिटी हब
+          </span>
+          <span className="text-[11px] font-bold text-amber-300 md:hidden">
+            कम्युनिटी
+          </span>
+        </div>
+
+        {/* Links: horizontal scroll on mobile, flex-wrap centered on tablet/desktop */}
+        <div className="flex flex-1 items-center justify-end gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2.5">
+          {PROMO_LINKS.map((link) => {
+            const Icon = ICONS[link.icon];
+            return (
+              <a
+                key={link.key}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                title={link.note}
+                className="group shrink-0 inline-flex items-center gap-1.5 rounded-full border border-amber-500/25 bg-slate-800/80 px-3 py-1 text-[11px] font-semibold text-slate-200 shadow-sm transition-all hover:scale-[1.02] hover:border-amber-400 hover:bg-slate-800 hover:text-white hover:shadow-amber-500/10 sm:text-xs"
+              >
+                <Icon className="h-3.5 w-3.5 text-amber-400 transition-transform group-hover:scale-110" />
+                <span>{link.label}</span>
+                <ExternalLink className="h-3 w-3 text-slate-400 opacity-60 transition group-hover:opacity-100" />
+              </a>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

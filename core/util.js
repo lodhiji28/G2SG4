@@ -174,7 +174,7 @@ export function text(body, init = {}) {
 
 /* ------------------------------------------------------- validation ------- */
 
-const CATEGORIES = ['UR', 'OBC', 'SC', 'ST', 'EWS'];
+const CATEGORIES = ['UR', 'OBC', 'SC', 'ST', 'EWS', 'PWD'];
 const GENDERS = ['Male', 'Female', 'Other'];
 
 export function validateCandidate(input, cfg) {

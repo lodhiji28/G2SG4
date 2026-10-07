@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CandidateRecord, ShiftStats } from '../types';
 import { EXAM_SHIFTS } from '../data/shifts';
 import { RawMarksDisclaimer } from './RawMarksDisclaimer';
+import { ToppersHub } from './ToppersHub';
 import { 
   Users, 
   Target, 
@@ -86,7 +87,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const maxBucketCount = Math.max(...buckets.map((b) => b.count), 1);
 
   // Category counts and averages
-  const categoriesList = ['UR', 'OBC', 'SC', 'ST', 'EWS'] as const;
+  const categoriesList = ['UR', 'OBC', 'SC', 'ST', 'EWS', 'PWD'] as const;
   const categoryStats = categoriesList.map((cat) => {
     const pool = candidates.filter((c) => c.category === cat);
     const count = pool.length;
@@ -375,6 +376,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Subject, Stream, Gender & Category Toppers Gallery */}
+      <ToppersHub candidates={candidates} onSelectCandidate={() => onNavigate('leaderboard')} />
+
       {/* Category Breakdown Cards */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -390,7 +394,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {categoryStats.map((item) => (
             <div
               key={item.category}
