@@ -51,9 +51,6 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       if (filters.qualification && filters.qualification !== 'all' && !c.qualifications?.includes(filters.qualification)) {
         return false;
       }
-      if (filters.postPreference && filters.postPreference !== 'all' && !(c.postPreferences || []).includes(filters.postPreference)) {
-        return false;
-      }
       if (filters.searchQuery) {
         const q = filters.searchQuery.toLowerCase().trim();
         const matchesName = (c.candidateNamePrivate || '').toLowerCase().includes(q) || c.candidateNamePublic.toLowerCase().includes(q);

@@ -308,15 +308,15 @@ export const MyProfileRankView: React.FC<MyProfileRankViewProps> = ({
         </div>
       </div>
 
-      {/* Profile completion (blueprint #40/#41) + chosen posts */}
+      {/* Profile completion (blueprint #40/#41) — the three editable fields */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">प्रोफ़ाइल पूर्णता व Post Preferences</h2>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">प्रोफ़ाइल पूर्णता</h2>
           <button
             onClick={() => setIsEditing(true)}
             className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer"
           >
-            {candidate.postPreferences?.length ? 'संपादित करें' : 'पrefs जोड़ें'}
+            संपादित करें
           </button>
         </div>
 

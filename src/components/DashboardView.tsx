@@ -142,9 +142,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         const pct = (f: (c: typeof candidates[number]) => boolean) =>
           Number(((candidates.filter(f).length / Math.max(1, totalStudents)) * 100).toFixed(0));
         const rows = [
-          { label: 'पूर्ण प्रोफ़ाइल (योग्यता + post prefs)', v: pct((c) => (c.qualifications?.length || 0) > 0 && (c.postPreferences?.length || 0) > 0) },
-          { label: 'योग्यता भरी', v: pct((c) => (c.qualifications?.length || 0) > 0) },
-          { label: 'Post preferences भरी', v: pct((c) => (c.postPreferences?.length || 0) > 0) },
+          // the three fields a candidate can actually set — nothing else is counted
+          { label: 'पूर्ण प्रोफ़ाइल (श्रेणी + लिंग + योग्यता)', v: pct((c) => (c.qualifications?.length || 0) > 0 && !!c.category && !!c.gender) },
+          { label: 'योग्यता चुनी', v: pct((c) => (c.qualifications?.length || 0) > 0) },
           { label: 'श्रेणी दर्ज', v: pct((c) => !!c.category) },
           { label: 'लिंग दर्ज', v: pct((c) => !!c.gender) },
         ];
