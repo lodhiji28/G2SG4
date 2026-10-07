@@ -89,13 +89,12 @@ export const repository = {
     const res = await api.candidates({ limit: opts.limit ?? FETCH_LIMIT });
     const rows = res.data?.candidates ?? [];
 
-    if (res.status === 0) {
+    if (res.status === 0 || res.status === 404) {
       setApiReachable(false);
       return {
         candidates: local,
-        sync: setSyncMeta({ mode: 'offline', total: local.length, lastError: res.error }),
+        sync: setSyncMeta({ mode: 'local', total: local.length }),
         changed: false,
-        error: res.error,
         pendingCount: pending,
       };
     }
@@ -217,6 +216,17 @@ export const repository = {
       return { ok: false, duplicate: true, error: res.error || 'यह रोल नंबर पहले से दर्ज है।' };
     }
 
+    // 404 indicates static hosting with no API backend (e.g. Netlify dist upload).
+    // Fall back to local mode seamlessly without throwing an error!
+    if (res.status === 404) {
+      setSyncMeta({ mode: 'local', total: getCandidates().length });
+      return {
+        ok: true,
+        offline: true,
+        message: 'डेटा सुरक्षित रूप से सहेजा गया (ऑफलाइन / लोकल मोड)।',
+      };
+    }
+
     // 4xx from validation means "fix this", everything else means "retry later".
     const rejected = res.status >= 400 && res.status < 500 && res.status !== 429 && res.status !== 408;
     if (rejected) return { ok: false, error: res.error || 'सबमिशन अस्वीकृत किया गया।' };
@@ -261,6 +271,10 @@ export const repository = {
 
     if (res.status === 401 || res.status === 403) {
       return { success: false, synced: false, error: 'अनाधिकृत: आप केवल अपनी ही प्रोफ़ाइल संपादित कर सकते हैं।' };
+    }
+
+    if (res.status === 404) {
+      return { success: true, synced: false };
     }
 
     pushPending('patch', rollNumber, fields);
