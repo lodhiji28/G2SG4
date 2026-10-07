@@ -419,6 +419,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
     window.print();
   };
 
+  // Mask second word of student name (e.g., "BAIJNATH LODHI" -> "BAIJNATH ****") for reports
+  const maskSecondWord = (rawName?: string) => {
+    const str = String(rawName || '').trim();
+    if (!str) return 'अभ्यर्थी';
+    const parts = str.split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) {
+      return parts[0] || 'अभ्यर्थी';
+    }
+    return `${parts[0]} ****`;
+  };
+
   // Direct HTML Report Download (Beautifully styled with watermark & print button)
   const handleDownloadHtmlReport = () => {
     const list = filteredCandidates;
@@ -435,7 +446,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
     const tableRows = list.map((c, i) => {
       const rank = i + 1;
-      const name = unmaskNames ? (c.candidateNamePrivate || c.candidateNamePublic) : c.candidateNamePublic;
+      // Hide second word of student name in exported report
+      const name = maskSecondWord(c.candidateNamePrivate || c.candidateNamePublic);
       const quals = (c.qualifications || []).join(', ') || '-';
       const quota = [c.contractStatus ? 'संविदा' : null, c.exServiceman ? 'भूतपूर्व सैनिक' : null].filter(Boolean).join(' + ') || '-';
       return `
@@ -1512,7 +1524,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <td className="py-1.5 px-2 text-center font-bold">#{idx + 1}</td>
                       <td className="py-1.5 px-2 font-semibold text-slate-900">{c.rollNumber}</td>
                       <td className="py-1.5 px-2 font-sans font-medium text-slate-800">
-                        {unmaskNames ? (c.candidateNamePrivate || c.candidateNamePublic) : c.candidateNamePublic}
+                        {maskSecondWord(c.candidateNamePrivate || c.candidateNamePublic)}
                       </td>
                       <td className="py-1.5 px-2 font-sans text-slate-700">Shift {c.shiftNumber}</td>
                       <td className="py-1.5 px-2 font-sans font-medium">{c.category}</td>
