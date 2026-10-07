@@ -12,6 +12,7 @@
  */
 import { api, getClaimToken, saveClaimToken, setAdminToken, getAdminToken } from './api';
 import type { RankBlock, ServerStats } from './api';
+import { fetchCloudSubmissions, saveCloudSubmission } from './cloudDb';
 import {
   addAuditLog,
   bumpPendingAttempt,
@@ -65,10 +66,49 @@ export interface SubmitResult {
 const keyOf = (roll: string) => String(roll || '').trim().toLowerCase();
 const FETCH_LIMIT = Number((import.meta.env.VITE_LEADERBOARD_LIMIT as string) || 50000);
 
+function mergeAndSaveCloud(cloudRows: CandidateRecord[], local: CandidateRecord[]): LoadResult {
+  const localByKey = new Map(local.map((c) => [keyOf(c.rollNumber), c]));
+  const serverKeys = new Set<string>();
+
+  const merged: CandidateRecord[] = cloudRows.map((row) => {
+    const k = keyOf(row.rollNumber);
+    serverKeys.add(k);
+    const mine = localByKey.get(k);
+    return {
+      ...row,
+      candidateNamePrivate: mine?.candidateNamePrivate ?? row.candidateNamePrivate,
+      email: mine?.email ?? row.email,
+      answerPattern: mine?.answerPattern ?? row.answerPattern,
+      isSelf: Boolean(mine) || Boolean(getClaimToken(row.rollNumber)),
+      isLocalOnly: false,
+    };
+  });
+
+  const localOnly = local.filter((c) => !serverKeys.has(keyOf(c.rollNumber)));
+  for (const c of localOnly) merged.push({ ...c, isLocalOnly: true });
+
+  saveCandidates(merged);
+  const sync = setSyncMeta({
+    mode: 'live',
+    total: merged.length,
+    revision: 1,
+    lastSyncAt: new Date().toISOString(),
+    synced: merged.length,
+  });
+
+  return {
+    candidates: merged,
+    sync,
+    changed: true,
+    serverTotal: merged.length,
+    pendingCount: getPending().length,
+  };
+}
+
 export const repository = {
   /** True when the API base URL is configured and not explicitly disabled. */
   get databaseConfigured(): boolean {
-    return api.enabled;
+    return true;
   },
 
   /* -------------------------------------------------------------- reads --- */
@@ -78,6 +118,8 @@ export const repository = {
     const pending = getPending().length;
 
     if (!api.enabled) {
+      const cloudRows = await fetchCloudSubmissions(opts.limit ?? FETCH_LIMIT);
+      if (cloudRows.length > 0) return mergeAndSaveCloud(cloudRows, local);
       return {
         candidates: local,
         sync: setSyncMeta({ mode: 'local', total: local.length }),
@@ -91,6 +133,8 @@ export const repository = {
 
     if (res.status === 0 || res.status === 404) {
       setApiReachable(false);
+      const cloudRows = await fetchCloudSubmissions(opts.limit ?? FETCH_LIMIT);
+      if (cloudRows.length > 0) return mergeAndSaveCloud(cloudRows, local);
       return {
         candidates: local,
         sync: setSyncMeta({ mode: 'local', total: local.length }),
@@ -195,7 +239,9 @@ export const repository = {
     upsertLocalCandidate({ ...input, isSelf: true, isLocalOnly: !api.enabled });
 
     if (!api.enabled) {
-      return { ok: true, message: 'डेटा इस ब्राउज़र में सहेजा गया (डेटाबेस कॉन्फ़िगर नहीं है)।' };
+      await saveCloudSubmission(input);
+      setSyncMeta({ mode: 'live', lastSyncAt: new Date().toISOString() });
+      return { ok: true, message: 'उत्तर कुंजी क्लाउड डेटाबेस में दर्ज हो गई है!' };
     }
 
     const res = await api.submit(input);
@@ -217,13 +263,13 @@ export const repository = {
     }
 
     // 404 indicates static hosting with no API backend (e.g. Netlify dist upload).
-    // Fall back to local mode seamlessly without throwing an error!
+    // Directly save to Cloud Supabase so all mobile devices share the data!
     if (res.status === 404) {
-      setSyncMeta({ mode: 'local', total: getCandidates().length });
+      await saveCloudSubmission(input);
+      setSyncMeta({ mode: 'live', lastSyncAt: new Date().toISOString() });
       return {
         ok: true,
-        offline: true,
-        message: 'डेटा सुरक्षित रूप से सहेजा गया (ऑफलाइन / लोकल मोड)।',
+        message: 'उत्तर कुंजी क्लाउड डेटाबेस में दर्ज हो गई है!',
       };
     }
 
