@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# Rank Mitra — Netlify config
+#
+# Everything deploys from THIS one file: the static SPA (dist/) and the API
+# (netlify/functions/api.mjs), which is a thin wrapper around the same
+# core/handler.js the Node server and the Cloudflare Worker use. Because both
+# halves share one origin there is no CORS, no VITE_API_BASE to forget, and no
+# second free tier to babysit.
+#
+# What you must set in Netlify (Site configuration → Environment variables):
+#   DATABASE_URL     Supabase **session pooler** string, not the direct endpoint
+#                    (the direct one is IPv6-only and serverless can't reach it)
+#   ADMIN_PASSWORD   only if the admin panel should be usable
+#   DB_DRIVER=postgres  optional — the URL alone is enough, see core/config.js
+#
+# Data that must never appear here: the answer-key file. It is never uploaded —
+# the app reads a paste in the browser and sends only name·roll·shift·counts.
+# ---------------------------------------------------------------------------
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # reproducible, fast builds; bump when you upgrade Vite
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--no-audit --no-fund"
+
+# The API. Listed BEFORE the SPA catch-all on purpose: rules are matched
+# top-down, and a later /api rule would never be reached for a deep link like
+# /api/candidates — it would be answered with index.html instead of JSON.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# Single-page app: every path returns index.html (deep links like /leaderboard
+# must not 404 on refresh)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
+# ---------------------------------------------------------------------------
+# Functions
+# ---------------------------------------------------------------------------
+[functions]
+  directory = "netlify/functions"
+  # esbuild bundles core/*.js into the function; `pg` is a native-ish driver and
+  # must stay a real dependency in node_modules instead of being inlined.
+  node_bundler = "esbuild"
+  external_node_modules = ["pg"]
+
+# Static assets are content-hashed by Vite -> cache them for a year.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Never let the app be sniffed into another MIME type; keep referrer lean.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
