@@ -55,7 +55,7 @@ export function addCandidateSubmission(newCandidate: CandidateRecord): { success
 
   const updated = [newCandidate, ...currentList];
   saveCandidates(updated);
-  setCurrentUserRoll(newCandidate.rollNumber);
+  setOwnSubmittedRoll(newCandidate.rollNumber);
   addAuditLog('NEW_SUBMISSION', `Roll Number: ${newCandidate.rollNumber}, Score: ${newCandidate.rawScore}`);
 
   return { success: true };
@@ -94,12 +94,34 @@ export function updateCandidateProfile(
   return { success: true };
 }
 
+const OWN_SUBMITTED_ROLL_KEY = 'rank_mitra_own_submitted_roll_v2';
+
 /**
- * Current user session roll number
+ * Returns the roll number explicitly submitted by this user on this device.
+ */
+export function getOwnSubmittedRoll(): string | null {
+  try {
+    return localStorage.getItem(OWN_SUBMITTED_ROLL_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setOwnSubmittedRoll(roll: string): void {
+  try {
+    localStorage.setItem(OWN_SUBMITTED_ROLL_KEY, roll);
+    localStorage.setItem(CURRENT_USER_KEY, roll);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/**
+ * Current user session roll number (can be viewing another roll or own)
  */
 export function getCurrentUserRoll(): string | null {
   try {
-    return localStorage.getItem(CURRENT_USER_KEY);
+    return localStorage.getItem(CURRENT_USER_KEY) || localStorage.getItem(OWN_SUBMITTED_ROLL_KEY);
   } catch {
     return null;
   }

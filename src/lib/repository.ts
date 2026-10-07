@@ -17,6 +17,7 @@ import {
   bumpPendingAttempt,
   clearAllCandidates,
   getCandidates,
+  getOwnSubmittedRoll,
   getPending,
   getSyncMeta,
   pushPending,
@@ -236,6 +237,18 @@ export const repository = {
     rollNumber: string,
     fields: Partial<Pick<CandidateRecord, 'category' | 'gender' | 'qualifications' | 'exServiceman' | 'contractStatus' | 'postPreferences'>>
   ): Promise<{ success: boolean; error?: string; synced: boolean }> {
+    const hasClaim = Boolean(getClaimToken(rollNumber));
+    const ownRoll = getOwnSubmittedRoll();
+    const isOwner = hasClaim || (ownRoll && ownRoll.trim().toLowerCase() === rollNumber.trim().toLowerCase());
+
+    if (!isOwner) {
+      return {
+        success: false,
+        error: 'अनाधिकृत: आप केवल अपनी ही प्रोफ़ाइल संपादित कर सकते हैं। अन्य अभ्यर्थियों के डेटा में बदलाव वर्जित है।',
+        synced: false,
+      };
+    }
+
     const local = updateCandidateProfile(rollNumber, fields);
     if (!local.success) return { success: false, error: local.error, synced: false };
     if (!api.enabled) return { success: true, synced: false };
@@ -246,8 +259,10 @@ export const repository = {
       return { success: true, synced: true };
     }
 
-    // 401/403/404: this browser has no claim token for that row (e.g. the
-    // submission was made on another device). Keep it queued; admin can fix.
+    if (res.status === 401 || res.status === 403) {
+      return { success: false, synced: false, error: 'अनाधिकृत: आप केवल अपनी ही प्रोफ़ाइल संपादित कर सकते हैं।' };
+    }
+
     pushPending('patch', rollNumber, fields);
     return { success: true, synced: false, error: res.error };
   },

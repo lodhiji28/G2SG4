@@ -8,6 +8,7 @@ import { CandidateRecord, ShiftStats } from './types';
 import {
   getCurrentUserRoll,
   setCurrentUserRoll,
+  getOwnSubmittedRoll,
   getLastRefreshTime,
   updateRefreshTime,
 } from './lib/storage';
@@ -134,10 +135,9 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Callback when clicking a candidate in leaderboard
+  // Callback when clicking a candidate in leaderboard (viewing their public card)
   const handleSelectCandidate = (candidate: CandidateRecord) => {
     setCurrentUserRollState(candidate.rollNumber);
-    setCurrentUserRoll(candidate.rollNumber);
     setActiveTab('my-rank');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -159,6 +159,12 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         onTabChange={(tab) => {
+          if (tab === 'my-rank') {
+            const own = getOwnSubmittedRoll();
+            if (own) {
+              setCurrentUserRollState(own);
+            }
+          }
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
