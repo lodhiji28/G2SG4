@@ -13,6 +13,7 @@ import {
   updateRefreshTime,
 } from './lib/storage';
 import { repository } from './lib/repository';
+import { subscribeToCloudSubmissions } from './lib/cloudDb';
 import type { SyncMeta } from './lib/storage';
 import type { ServerStats } from './lib/api';
 import { calculateShiftStats } from './lib/ranking';
@@ -99,11 +100,16 @@ export default function App() {
 
     void refresh({ silent: true });
 
+    const unsubRealtime = subscribeToCloudSubmissions(() => {
+      void refresh({ silent: true });
+    });
+
     const interval = window.setInterval(() => void refresh({ silent: true }), REFRESH_MS);
     const onOnline = () => void refresh({ silent: true });
     window.addEventListener('online', onOnline);
     window.addEventListener('focus', onOnline);
     return () => {
+      unsubRealtime();
       window.clearInterval(interval);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('focus', onOnline);

@@ -1,102 +1,114 @@
 /**
- * Direct Cloud Supabase Client for Static & Drag-and-Drop Deployments.
- * Enables live shared multi-user leaderboard across all mobile devices
- * even when deployed as a purely static site without serverless functions.
+ * Direct Cloud Supabase Client for psztuvublihxgnrrylkh
+ * Writes directly into the user's "candidates" table.
  */
 
+import { createClient } from '@supabase/supabase-js';
 import type { CandidateRecord, Category, Gender } from '../types';
 
-const SUPABASE_URL = 'https://cvxrnsaulnpshkssmist.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_h2Ll_6lh6KPh5zlPHF8PBQ_0yVXTHEa';
+export const SUPABASE_URL = 'https://psztuvublihxgnrrylkh.supabase.co';
+export const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzenR1dnVibGloeGducnJ5bGtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNjM0MjUsImV4cCI6MjEwNjkzOTQyNX0.QEntW0h3MsB34PYnUMejFv6jnmgsY5XxW_DYwt0YFQo';
 
-interface SupabaseSubmissionRow {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
+
+interface CandidateDbRow {
   id: string;
-  submission_token?: string;
-  display_name: string;
+  exam_id: string;
+  roll_number: string;
+  candidate_name_private?: string;
+  candidate_name_public: string;
+  email?: string;
+  exam_date?: string;
+  shift_id?: string;
+  shift_number: number;
+  total_questions: number;
+  attempted: number;
+  unattempted: number;
+  correct: number;
+  wrong: number;
+  raw_score: number;
+  accuracy: number;
   category: string;
   gender: string;
-  mp_domicile?: boolean;
-  shift_id: string;
-  correct_count: number;
-  wrong_count: number;
-  unattempted_count: number;
-  raw_score: number;
-  qualification_stream?: string;
-  is_verified?: boolean;
-  created_at?: string;
+  ex_serviceman?: number;
+  contract_status?: number;
+  qualifications: string;
+  post_preferences?: string;
+  source_format?: string;
+  parse_confidence?: string;
+  file_name?: string;
+  file_bytes?: number;
+  answer_pattern?: string;
+  claim_token_hash?: string;
+  submitted_at: string;
   updated_at?: string;
 }
 
-function parseShiftNumber(shiftId: string): number {
-  if (!shiftId) return 1;
-  const matchNum = shiftId.match(/shift[^\d]*(\d+)/i);
-  if (matchNum) {
-    const n = parseInt(matchNum[1], 10);
-    if (!isNaN(n) && n >= 1 && n <= 22) return n;
+export function dbRowToCandidateRecord(row: CandidateDbRow): CandidateRecord {
+  let quals: string[] = [];
+  try {
+    quals = typeof row.qualifications === 'string' ? JSON.parse(row.qualifications) : row.qualifications || [];
+  } catch {
+    quals = row.qualifications ? [String(row.qualifications)] : [];
   }
-  // Try mapping shift dates if formatted as shift-YYYY-MM-DD-s1/s2
-  const matchSlot = shiftId.match(/-s(\d+)$/i);
-  if (matchSlot) {
-    const slot = parseInt(matchSlot[1], 10);
-    return slot === 2 ? 2 : 1;
-  }
-  return 1;
-}
 
-export function rowToCandidateRecord(row: SupabaseSubmissionRow): CandidateRecord {
-  const roll = row.id.replace(/^cand-/, '') || row.submission_token || '3000000000';
-  const shiftNum = parseShiftNumber(row.shift_id);
-  const correct = Number(row.correct_count) || 0;
-  const wrong = Number(row.wrong_count) || 0;
-  const unattempted = Number(row.unattempted_count) || 0;
-  const attempted = correct + wrong;
-  const total = attempted + unattempted || 200;
-  const accuracy = attempted > 0 ? (correct / attempted) * 100 : 0;
+  let postPrefs: string[] = [];
+  try {
+    postPrefs = typeof row.post_preferences === 'string' ? JSON.parse(row.post_preferences) : [];
+  } catch {
+    postPrefs = [];
+  }
 
   return {
     id: row.id,
-    examId: 'mpesb-g2sg4-2026',
-    rollNumber: roll,
-    candidateNamePublic: row.display_name || 'उम्मीदवार',
-    examDate: row.created_at ? row.created_at.slice(0, 10) : '2026-09-26',
-    shiftId: row.shift_id || `shift-${shiftNum}`,
-    shiftNumber: shiftNum,
-    totalQuestions: total,
-    attempted,
-    unattempted,
-    correct,
-    wrong,
-    rawScore: Number(row.raw_score) || (correct - wrong * 0.25),
-    accuracy: Math.round(accuracy * 10) / 10,
+    examId: row.exam_id || 'mpesb-g2sg4-2026',
+    rollNumber: row.roll_number,
+    candidateNamePrivate: row.candidate_name_private,
+    candidateNamePublic: row.candidate_name_public || 'उम्मीदवार',
+    email: row.email,
+    examDate: row.exam_date || '',
+    shiftId: row.shift_id || `shift-${row.shift_number || 1}`,
+    shiftNumber: Number(row.shift_number) || 1,
+    totalQuestions: Number(row.total_questions) || 200,
+    attempted: Number(row.attempted) || 0,
+    unattempted: Number(row.unattempted) || 0,
+    correct: Number(row.correct) || 0,
+    wrong: Number(row.wrong) || 0,
+    rawScore: Number(row.raw_score) || 0,
+    accuracy: Number(row.accuracy) || 0,
     category: (row.category as Category) || 'UR',
-    gender: row.gender === 'F' ? 'Female' : 'Male',
-    qualifications: row.qualification_stream ? [row.qualification_stream] : ['ANY'],
-    submittedAt: row.created_at || new Date().toISOString(),
+    gender: (row.gender as Gender) || 'Male',
+    exServiceman: Boolean(row.ex_serviceman),
+    contractStatus: Boolean(row.contract_status),
+    qualifications: quals,
+    postPreferences: postPrefs,
+    sourceFormat: row.source_format,
+    confidence: (row.parse_confidence as any) || 'VERIFIED',
+    submittedAt: row.submitted_at || new Date().toISOString(),
     isLocalOnly: false,
-    confidence: 'VERIFIED',
   };
 }
 
 export async function fetchCloudSubmissions(limit = 50000): Promise<CandidateRecord[]> {
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/candidate_submissions?select=*&order=raw_score.desc&limit=${limit}`,
-      {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Accept-Profile': 'public',
-        },
-      }
-    );
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('*')
+      .order('raw_score', { ascending: false })
+      .limit(limit);
 
-    if (!res.ok) {
-      console.warn('Cloud Supabase fetch error:', res.status, res.statusText);
+    if (error || !data) {
+      console.warn('Cloud Supabase fetch error:', error?.message);
       return [];
     }
 
-    const rows: SupabaseSubmissionRow[] = await res.json();
-    return rows.map(rowToCandidateRecord);
+    return (data as CandidateDbRow[]).map(dbRowToCandidateRecord);
   } catch (err) {
     console.warn('Network error connecting to Cloud Supabase:', err);
     return [];
@@ -105,37 +117,70 @@ export async function fetchCloudSubmissions(limit = 50000): Promise<CandidateRec
 
 export async function saveCloudSubmission(candidate: CandidateRecord): Promise<boolean> {
   try {
-    const roll = candidate.rollNumber;
-    const payload: SupabaseSubmissionRow = {
-      id: `cand-${roll}`,
-      submission_token: `tok-${roll}`,
-      display_name: candidate.candidateNamePublic || 'उम्मीदवार',
-      category: candidate.category || 'UR',
-      gender: candidate.gender === 'Female' ? 'F' : 'M',
-      mp_domicile: true,
+    const roll = (candidate.rollNumber || '').trim();
+    const id = `cand-${roll || Date.now()}`;
+
+    const payload: CandidateDbRow = {
+      id,
+      exam_id: 'mpesb-g2sg4-2026',
+      roll_number: roll,
+      candidate_name_private: candidate.candidateNamePrivate || '',
+      candidate_name_public: candidate.candidateNamePublic || 'उम्मीदवार',
+      email: candidate.email || '',
+      exam_date: candidate.examDate || '',
       shift_id: candidate.shiftId || `shift-${candidate.shiftNumber || 1}`,
-      correct_count: candidate.correct || 0,
-      wrong_count: candidate.wrong || 0,
-      unattempted_count: candidate.unattempted || 0,
-      raw_score: candidate.rawScore,
-      qualification_stream: (candidate.qualifications && candidate.qualifications[0]) || 'ANY',
-      is_verified: true,
+      shift_number: Number(candidate.shiftNumber) || 1,
+      total_questions: Number(candidate.totalQuestions) || 200,
+      attempted: Number(candidate.attempted) || 0,
+      unattempted: Number(candidate.unattempted) || 0,
+      correct: Number(candidate.correct) || 0,
+      wrong: Number(candidate.wrong) || 0,
+      raw_score: Number(candidate.rawScore) || 0,
+      accuracy: Number(candidate.accuracy) || 0,
+      category: candidate.category || 'UR',
+      gender: candidate.gender || 'Male',
+      ex_serviceman: candidate.exServiceman ? 1 : 0,
+      contract_status: candidate.contractStatus ? 1 : 0,
+      qualifications: JSON.stringify(candidate.qualifications || []),
+      post_preferences: JSON.stringify(candidate.postPreferences || []),
+      source_format: candidate.sourceFormat || 'PASTE',
+      parse_confidence: candidate.confidence || 'VERIFIED',
+      file_bytes: 0,
+      submitted_at: candidate.submittedAt || new Date().toISOString(),
     };
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/candidate_submissions`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=representation',
-      },
-      body: JSON.stringify(payload),
-    });
+    const { error } = await supabase.from('candidates').upsert(payload, { onConflict: 'id' });
 
-    return res.ok;
+    if (error) {
+      console.warn('Error saving to Cloud Supabase candidates table:', error.message);
+      return false;
+    }
+
+    return true;
   } catch (err) {
     console.warn('Error saving to Cloud Supabase:', err);
     return false;
+  }
+}
+
+export function subscribeToCloudSubmissions(onChange: () => void): () => void {
+  try {
+    const channel = supabase
+      .channel('realtime:candidates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'candidates' },
+        () => {
+          onChange();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('Supabase realtime error:', err);
+    return () => {};
   }
 }
