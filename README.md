@@ -1,14 +1,21 @@
 # Rank Mitra — MPESB Group-2 Sub-Group-4 रैंक व शिफ्ट विश्लेषण
 
-उम्मीदवार ESB के **Response Sheet** पेज को पूरा select करके (`Ctrl+A` / मोबाइल पर *सभी चुनें*) यहसा
-paste करता है — बस। कोई फ़ाइल upload नहीं, कोई download नहीं, कोई email नहीं।
+**एक ही feature:** MPESB की Response Sheet पेज को पूरा select करके पेस्ट करें → 2 सेकंड में आपका स्कोर,
+रैंक और पूरा लीडरबोर्ड। फ़ाइल अपलोड (`.html`/`.mhtml`) और manual entry के विकल्प हटा दिए गए हैं — **सिर्फ़ पेस्ट**।  
+(लैपटॉप पर सेव की हुई Response Sheet खुली हो तो उस पेज को select करके पेस्ट करना भी चल जाता है।)
+
+**जुड़ें / संपर्क:** [Telegram चैनल — TopperView](https://t.me/TopperView) · [MP Sipyq — आंसर की व टूल](https://mpsipyq.netlify.app/) · [ओनर से संपर्क करें](https://t.me/LODHIJI27)
 
 * browser में ही पढ़ा जाता है: **नाम · रोल नंबर · तारीख/शिफ्ट · सही · गलत · प्रयासित · अनुत्तरित** (59 kB का पूरा पेज ~15 ms में)
 * server पर केवल यही सात संख्याएँ + **श्रेणी, लिंग, योग्यता** (जिन्हें उम्मीदवार स्वयं चुनता है) जाती हैं
-* **पेस्ट की गई सामग्री कहीं अपलोड/संचित नहीं होती** — न फ़ाइल, न screenshot, न उत्तर-क्रम (answer pattern)
+* **पेस्ट की गई उत्तर कुंजी कभी संचित नहीं होती** — न DB में, न disk पर, न screenshot, न उत्तर-क्रम (answer pattern)
 * 22 शिफ्ट्स की तुलना, category/gender rank व percentile उन्हीं संख्याओं से बनता है
 
 ---
+
+> 🤖 **AI एजेंट (Google Antigravity / Cursor / Copilot agent) के लिए पूरा मैनुअल — नियम, Supabase,
+> Netlify, env, API contract, parser के जाल, टेस्ट और TODO:** [`AGENTS.md`](AGENTS.md)
+> कोई भी कोड बदलने से पहले वह फ़ाइल पढ़ें।
 
 ## 1 · चलाना (local)
 

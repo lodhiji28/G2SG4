@@ -23,6 +23,9 @@ import { LeaderboardView } from './components/LeaderboardView';
 import { MyProfileRankView } from './components/MyProfileRankView';
 import { PasteAnswerKeyView } from './components/PasteAnswerKeyView';
 import { TopPasteGuide } from './components/TopPasteGuide';
+import { PromoBar } from './components/PromoBar';
+import { PromoModal } from './components/PromoModal';
+import { PROMO_LINKS } from './components/promoLinks';
 import { MethodologyView } from './components/MethodologyView';
 import { AdminView } from './components/AdminView';
 import { DataStorageSyncBar } from './components/DataStorageSyncBar';
@@ -140,6 +143,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-800 dark:selection:text-amber-200 transition-colors">
+      {/* Community strip: Telegram channel, MP Sipyq, contact the owner */}
+      <PromoBar />
+
       {/* The only instruction that matters, above the header, always reachable */}
       <TopPasteGuide
         onGoPaste={() => {
@@ -280,9 +286,24 @@ export default function App() {
             >
               प्रशासक पोर्टल
             </button>
+            <span className="text-slate-300 dark:text-slate-700">·</span>
+            {PROMO_LINKS.map((link) => (
+              <a
+                key={link.key}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+              >
+                {link.short}
+              </a>
+            ))}
           </div>
         </div>
       </footer>
+
+      {/* First-visit popup — one-time, dismissible with ✕ / Esc / बाहर का क्लिक */}
+      <PromoModal />
     </div>
   );
 }
